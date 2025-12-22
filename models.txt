@@ -1,8 +1,13 @@
-diffusion_models https://huggingface.co/WAN/wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors
-diffusion_models https://huggingface.co/WAN/wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors
+# WAN 2.2 diffusion models
+diffusion_models https://huggingface.co/Wan-AI/Wan2.2/resolve/main/wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors
+diffusion_models https://huggingface.co/Wan-AI/Wan2.2/resolve/main/wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors
 
-loras https://huggingface.co/WAN/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors
-loras https://huggingface.co/WAN/wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors
+# WAN LoRAs
+loras https://huggingface.co/Wan-AI/Wan2.2/resolve/main/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors
+loras https://huggingface.co/Wan-AI/Wan2.2/resolve/main/wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors
 
-text_encoders https://huggingface.co/WAN/umt5_xxl_fp8_e4m3fn_scaled.safetensors
-vae https://huggingface.co/WAN/wan_2.1_vae.safetensors
+# WAN text encoder
+text_encoders https://huggingface.co/Wan-AI/Wan2.2/resolve/main/umt5_xxl_fp8_e4m3fn_scaled.safetensors
+
+# WAN VAE
+vae https://huggingface.co/Wan-AI/Wan2.2/resolve/main/wan_2.1_vae.safetensors
