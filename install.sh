@@ -25,15 +25,24 @@ git clone https://github.com/chremmler777/comfy-bootstrap.git bootstrap
 
 echo "=== Custom nodes ==="
 cd /workspace/ComfyUI/custom_nodes
-while read repo; do
+while read -r repo; do
+  name=$(basename "$repo" .git)
+  [ -d "$name" ] && continue
   git clone "$repo"
 done < /workspace/bootstrap/custom_nodes.txt
 
 echo "=== Models ==="
 cd /workspace/ComfyUI/models
-while read folder url; do
+
+HDR=()
+if [ -n "${HF_TOKEN:-}" ]; then
+  HDR=(--header="Authorization: Bearer ${HF_TOKEN}")
+fi
+
+while read -r folder url; do
+  [[ -z "$folder" || "$folder" =~ ^# ]] && continue
   mkdir -p "$folder"
-  aria2c -x16 -s16 -d "$folder" "$url"
+  aria2c -x16 -s16 "${HDR[@]}" -d "$folder" "$url"
 done < /workspace/bootstrap/models.txt
 
 echo "=== Workflows ==="
