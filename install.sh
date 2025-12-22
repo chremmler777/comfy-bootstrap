@@ -1,36 +1,9 @@
 #!/bin/bash
 set -e
 
-ODELS_FILE="/workspace/bootstrap/models.txt"
-
-if [ -z "${HF_TOKEN:-}" ]; then
-  echo "HF_TOKEN not set → validating anonymously"
-  HDR=()
-else
-  HDR=(-H "Authorization: Bearer ${HF_TOKEN}")
-fi
-
-echo "=== Validating model URLs ==="
-
-while read -r folder url; do
-  [[ -z "$folder" || "$folder" =~ ^# ]] && continue
-
-  echo "Checking: $url"
-
-  code=$(curl -s -o /dev/null -w "%{http_code}" \
-    -L --head "${HDR[@]}" "$url")
-
-  if [[ "$code" != "200" ]]; then
-    echo "ERROR: $url returned HTTP $code"
-    exit 1
-  fi
-done < "$MODELS_FILE"
-
-echo "All model URLs validated successfully."
-
 echo "=== System dependencies ==="
 apt update
-apt install -y git wget aria2 ffmpeg python3-venv
+apt install -y git wget aria2 ffmpeg python3-venv curl
 
 echo "=== ComfyUI ==="
 cd /workspace
@@ -50,9 +23,37 @@ echo "=== Pull bootstrap data ==="
 cd /workspace
 git clone https://github.com/chremmler777/comfy-bootstrap.git bootstrap
 
+MODELS_FILE="/workspace/bootstrap/models.txt"
+
+echo "=== Validating model URLs ==="
+
+if [ -z "${HF_TOKEN:-}" ]; then
+  echo "HF_TOKEN not set → validating anonymously"
+  CURL_HDR=()
+else
+  CURL_HDR=(-H "Authorization: Bearer ${HF_TOKEN}")
+fi
+
+while read -r folder url; do
+  [[ -z "$folder" || "$folder" =~ ^# ]] && continue
+
+  echo "Checking: $url"
+
+  code=$(curl -s -o /dev/null -w "%{http_code}" \
+    -L --head "${CURL_HDR[@]}" "$url")
+
+  if [[ "$code" != "200" ]]; then
+    echo "ERROR: $url returned HTTP $code"
+    exit 1
+  fi
+done < "$MODELS_FILE"
+
+echo "All model URLs validated successfully."
+
 echo "=== Custom nodes ==="
 cd /workspace/ComfyUI/custom_nodes
 while read -r repo; do
+  [[ -z "$repo" || "$repo" =~ ^# ]] && continue
   name=$(basename "$repo" .git)
   [ -d "$name" ] && continue
   git clone "$repo"
@@ -61,16 +62,16 @@ done < /workspace/bootstrap/custom_nodes.txt
 echo "=== Models ==="
 cd /workspace/ComfyUI/models
 
-HDR=()
+ARIA_HDR=()
 if [ -n "${HF_TOKEN:-}" ]; then
-  HDR=(--header="Authorization: Bearer ${HF_TOKEN}")
+  ARIA_HDR=(--header="Authorization: Bearer ${HF_TOKEN}")
 fi
 
 while read -r folder url; do
   [[ -z "$folder" || "$folder" =~ ^# ]] && continue
   mkdir -p "$folder"
-  aria2c -x16 -s16 "${HDR[@]}" -d "$folder" "$url"
-done < /workspace/bootstrap/models.txt
+  aria2c -x16 -s16 "${ARIA_HDR[@]}" -d "$folder" "$url"
+done < "$MODELS_FILE"
 
 echo "=== Workflows ==="
 cd /workspace/ComfyUI
