@@ -73,6 +73,9 @@ while read -r folder url; do
   aria2c -x16 -s16 "${ARIA_HDR[@]}" -d "$folder" "$url"
 done < "$MODELS_FILE"
 
+echo "=== Custom node Python dependencies ==="
+pip install diffusers gguf
+
 echo "=== Workflows ==="
 cd /workspace/ComfyUI
 mkdir -p user/default/workflows
