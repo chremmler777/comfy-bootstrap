@@ -85,6 +85,8 @@ done < /workspace/bootstrap/custom_nodes.txt
 # Models (WAN-authoritative)
 ############################
 echo "=== Models ==="
+
+mkdir -p /workspace/ComfyUI/models
 cd /workspace/ComfyUI/models
 
 ARIA_HDR=()
@@ -98,17 +100,23 @@ while read -r folder url; do
   fname="$(basename "$url")"
 
   echo "Downloading $fname → $folder"
-
   mkdir -p "$folder"
 
   aria2c -x16 -s16 "${ARIA_HDR[@]}" \
+    --continue=true \
     --allow-overwrite=true \
     --auto-file-renaming=false \
     -d "$folder" \
     -o "$fname" \
     "$url"
 
-done < /workspace/bootstrap/models.txt
+done < "$MODELS_FILE"
+
+echo "Model inventory:"
+echo "  diffusion_models: $(ls diffusion_models 2>/dev/null | wc -l)"
+echo "  loras:            $(ls loras 2>/dev/null | wc -l)"
+echo "  text_encoders:    $(ls text_encoders 2>/dev/null | wc -l)"
+echo "  vae:              $(ls vae 2>/dev/null | wc -l)"
 
 ############################
 # Python deps for custom nodes
