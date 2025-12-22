@@ -1,0 +1,3 @@
+https://github.com/ltdrdata/ComfyUI-Manager
+https://github.com/kijai/ComfyUI-WanVideoWrapper
+https://github.com/city96/ComfyUI-GGUF

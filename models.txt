@@ -1,0 +1,8 @@
+diffusion_models https://huggingface.co/WAN/wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors
+diffusion_models https://huggingface.co/WAN/wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors
+
+loras https://huggingface.co/WAN/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors
+loras https://huggingface.co/WAN/wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors
+
+text_encoders https://huggingface.co/WAN/umt5_xxl_fp8_e4m3fn_scaled.safetensors
+vae https://huggingface.co/WAN/wan_2.1_vae.safetensors
