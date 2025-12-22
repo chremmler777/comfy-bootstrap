@@ -82,7 +82,7 @@ while read -r repo; do
 done < /workspace/bootstrap/custom_nodes.txt
 
 ############################
-# Models (WAN-safe install)
+# Models (WAN-authoritative)
 ############################
 echo "=== Models ==="
 cd /workspace/ComfyUI/models
@@ -92,43 +92,23 @@ if [ -n "${HF_TOKEN:-}" ]; then
   ARIA_HDR=(--header="Authorization: Bearer ${HF_TOKEN}")
 fi
 
-TMP_DL="/workspace/model_tmp"
-rm -rf "$TMP_DL"
-mkdir -p "$TMP_DL"
-
 while read -r folder url; do
   [[ -z "$folder" || "$folder" =~ ^# ]] && continue
-  echo "Downloading $url"
-  aria2c -x16 -s16 "${ARIA_HDR[@]}" -d "$TMP_DL" "$url"
-done < "$MODELS_FILE"
 
-echo "=== Normalizing model layout (authoritative) ==="
+  fname="$(basename "$url")"
 
-mkdir -p diffusion_models loras text_encoders vae
+  echo "Downloading $fname → $folder"
 
-# Diffusion models
-find "$TMP_DL" -type f -name "wan2.2_*14B*.safetensors" \
-  -exec mv -f {} diffusion_models/ \;
+  mkdir -p "$folder"
 
-# LoRAs
-find "$TMP_DL" -type f -name "*lora*.safetensors" \
-  -exec mv -f {} loras/ \;
+  aria2c -x16 -s16 "${ARIA_HDR[@]}" \
+    --allow-overwrite=true \
+    --auto-file-renaming=false \
+    -d "$folder" \
+    -o "$fname" \
+    "$url"
 
-# Text encoders
-find "$TMP_DL" -type f -name "umt5*.safetensors" \
-  -exec mv -f {} text_encoders/ \;
-
-# VAEs
-find "$TMP_DL" -type f -name "*vae*.safetensors" \
-  -exec mv -f {} vae/ \;
-
-rm -rf "$TMP_DL"
-
-echo "Models installed:"
-echo "  diffusion_models: $(ls diffusion_models | wc -l)"
-echo "  loras:            $(ls loras | wc -l)"
-echo "  text_encoders:    $(ls text_encoders | wc -l)"
-echo "  vae:              $(ls vae | wc -l)"
+done < /workspace/bootstrap/models.txt
 
 ############################
 # Python deps for custom nodes
