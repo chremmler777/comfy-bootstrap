@@ -5,6 +5,22 @@ echo "=== System dependencies ==="
 apt update
 apt install -y git wget aria2 ffmpeg python3-venv curl
 
+echo "=== Normalizing WAN model layout ==="
+
+cd /workspace/ComfyUI/models
+
+# Ensure final directories exist
+mkdir -p diffusion_models loras text_encoders vae
+
+# Nothing fancy: files are already downloaded into correct target dirs
+# This block is defensive and future-proof
+for d in diffusion_models loras text_encoders vae; do
+  find "$d" -type f -name "*.safetensors" -exec mv -n {} "$d/" \;
+done
+
+echo "WAN model layout normalized."
+
+
 echo "=== ComfyUI ==="
 cd /workspace
 git clone https://github.com/comfyanonymous/ComfyUI.git
