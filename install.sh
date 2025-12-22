@@ -1,6 +1,33 @@
 #!/bin/bash
 set -e
 
+ODELS_FILE="/workspace/bootstrap/models.txt"
+
+if [ -z "${HF_TOKEN:-}" ]; then
+  echo "HF_TOKEN not set → validating anonymously"
+  HDR=()
+else
+  HDR=(-H "Authorization: Bearer ${HF_TOKEN}")
+fi
+
+echo "=== Validating model URLs ==="
+
+while read -r folder url; do
+  [[ -z "$folder" || "$folder" =~ ^# ]] && continue
+
+  echo "Checking: $url"
+
+  code=$(curl -s -o /dev/null -w "%{http_code}" \
+    -L --head "${HDR[@]}" "$url")
+
+  if [[ "$code" != "200" ]]; then
+    echo "ERROR: $url returned HTTP $code"
+    exit 1
+  fi
+done < "$MODELS_FILE"
+
+echo "All model URLs validated successfully."
+
 echo "=== System dependencies ==="
 apt update
 apt install -y git wget aria2 ffmpeg python3-venv
