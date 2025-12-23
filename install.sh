@@ -91,7 +91,7 @@ while read -r folder url filename; do
   echo "Downloading $fname → $folder"
   mkdir -p "$folder"
 
-  # Use curl for Civitai downloads to handle redirects with auth headers
+  # Use curl for Civitai downloads to handle redirects with auth headers (sequential - avoids rate limiting)
   if [[ "$url" =~ civitai.com ]]; then
     echo "Downloading $fname → $folder (using curl with Civitai auth)"
 
@@ -121,7 +121,7 @@ while read -r folder url filename; do
       fi
     done
   else
-    # Use aria2c for other sources (faster with parallel connections)
+    # Use aria2c for other sources (faster with parallel connections, run in background)
     DOWNLOAD_HEADERS=("${ARIA_HDR[@]}")
     aria2c -x16 -s16 "${DOWNLOAD_HEADERS[@]}" \
       --continue=true \
@@ -129,10 +129,13 @@ while read -r folder url filename; do
       --auto-file-renaming=false \
       -d "$folder" \
       -o "$fname" \
-      "$url"
+      "$url" &
   fi
 
 done < "$MODELS_FILE"
+
+# Wait for all background downloads to complete
+wait
 
 echo "Model inventory:"
 echo "  checkpoints:      $(ls checkpoints 2>/dev/null | wc -l)"
