@@ -7,6 +7,7 @@ checkpoints https://civitai.com/api/download/models/1942437?type=Model&format=Sa
 checkpoints https://civitai.com/api/download/models/2220886?type=Model&format=SafeTensor&size=pruned&fp=fp16 divingIllustriousReal_v50VAE.byZ0wI5w.safetensors
 checkpoints https://civitai.com/api/download/models/1094291?type=Model&format=SafeTensor&size=pruned&fp=fp16 lustifySDXLNSFW_endgame.safetensors
 checkpoints https://civitai.com/api/download/models/1305584?type=Model&format=SafeTensor&size=pruned&fp=fp16 xxxRay_v11.B9Nu1xsu.safetensors
+checkpoints https://huggingface.co/BusterBoo99xX/novaAsianXL_illustriousV50/resolve/main/novaAsianXL_illustriousV50.safetensors novaAsianXL_illustriousV50.safetensors
 
 # loras
 loras https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors
