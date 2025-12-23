@@ -93,12 +93,33 @@ while read -r folder url filename; do
 
   # Use curl for Civitai downloads to handle redirects with auth headers
   if [[ "$url" =~ civitai.com ]]; then
-    echo "Downloading $fname → $folder (using curl)"
-    curl -L -C - \
-      -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" \
-      ${CIVITAI_TOKEN:+-H "Authorization: Bearer ${CIVITAI_TOKEN}"} \
-      -o "$folder/$fname" \
-      "$url"
+    echo "Downloading $fname → $folder (using curl with Civitai auth)"
+
+    # Retry logic for Civitai downloads (may get corrupted files with wrong auth)
+    RETRY_COUNT=0
+    MAX_RETRIES=3
+
+    while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+      curl -L -C - \
+        -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" \
+        ${CIVITAI_TOKEN:+-H "Authorization: Bearer ${CIVITAI_TOKEN}"} \
+        -o "$folder/$fname" \
+        "$url"
+
+      # Check if file is corrupted (< 500KB is likely HTML error page)
+      if [ -f "$folder/$fname" ]; then
+        FILE_SIZE=$(stat -f%z "$folder/$fname" 2>/dev/null || stat -c%s "$folder/$fname" 2>/dev/null)
+        if [ "$FILE_SIZE" -lt 500000 ]; then
+          echo "⚠️  Downloaded file too small ($FILE_SIZE bytes) - likely corrupted. Retrying..."
+          rm "$folder/$fname"
+          RETRY_COUNT=$((RETRY_COUNT + 1))
+          sleep 5
+        else
+          echo "✓ Download successful ($FILE_SIZE bytes)"
+          break
+        fi
+      fi
+    done
   else
     # Use aria2c for other sources (faster with parallel connections)
     DOWNLOAD_HEADERS=("${ARIA_HDR[@]}")
