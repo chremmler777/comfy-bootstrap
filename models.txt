@@ -13,9 +13,22 @@ checkpoints https://huggingface.co/BusterBoo99xX/novaAsianXL_illustriousV50/reso
 loras https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors
 loras https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors
 
+# Custom workflow LoRAs
+loras https://huggingface.co/LyliaEngine/spo_sdxl_10ep_4k-data_lora_webui/resolve/main/spo_sdxl_10ep_4k-data_lora_webui.safetensors spo_sdxl_10ep_4k-data_lora_webui.safetensors
+loras https://civitai.com/api/download/models/50847?type=Model&format=SafeTensor qqq-grabbing_from_behind-v2-000006.safetensors
+loras https://huggingface.co/KirtiKousik/New_loras/resolve/085b51891573bb7cd780eae502d2216da04d444c/Penis%20Size_alpha1.0_rank4_noxattn_last.safetensors Penis_Size_alpha1.0_rank4_noxattn_last.safetensors
+loras https://civitai.com/api/download/models/146600?type=Model&format=SafeTensor testicles_slider_IXLR1_alpha16.0_rank32_full_last.safetensors
+loras https://civitai.com/api/download/models/154977?type=Model&format=SafeTensor Realistic_Saggy_Testicles.safetensors
+loras https://civitai.com/api/download/models/235392?type=Model&format=SafeTensor PenisQuiron_illus.safetensors
+loras https://civitai.com/api/download/models/238897?type=Model&format=SafeTensor scarlet-nikke-richy-v1_pdxl.safetensors
+loras https://civitai.com/api/download/models/242639?type=Model&format=SafeTensor longnippls-vp2-000012.safetensors
+loras https://civitai.com/api/download/models/452767?type=Model&format=SafeTensor MS_Breasts_Style_V1_IL.safetensors
+loras https://civitai.com/api/download/models/584853?type=Model&format=SafeTensor Breast_Size_Slider_Illustrious_V2.safetensors
+loras https://civitai.com/api/download/models/482470?type=Model&format=PickleTensor cinematic_photography_detailed_illu_xl.safetensors
+
 # vae
 vae https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors wan_2.1_vae.safetensors
-vae https://civitai.com/api/download/models/333245?type=Model&format=SafeTensor sdxlVAE_sdxlVAE.safetensors
+vae https://huggingface.co/stabilityai/sdxl-vae/resolve/main/sdxl_vae.safetensors sdxl_vae.safetensors
 
 # text encoder (WAN 2.1 repo is correct here)
 text_encoders https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors umt5_xxl_fp8_e4m3fn_scaled.safetensors

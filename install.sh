@@ -91,7 +91,13 @@ while read -r folder url filename; do
   echo "Downloading $fname → $folder"
   mkdir -p "$folder"
 
-  aria2c -x16 -s16 "${ARIA_HDR[@]}" \
+  # Add Civitai token if downloading from civitai.com and token is set
+  DOWNLOAD_HEADERS=("${ARIA_HDR[@]}")
+  if [[ "$url" =~ civitai.com ]] && [ -n "${CIVITAI_TOKEN:-}" ]; then
+    DOWNLOAD_HEADERS+=(--header="Authorization: Bearer ${CIVITAI_TOKEN}")
+  fi
+
+  aria2c -x16 -s16 "${DOWNLOAD_HEADERS[@]}" \
     --continue=true \
     --allow-overwrite=true \
     --auto-file-renaming=false \
@@ -114,7 +120,7 @@ echo "  upscale_models:   $(ls upscale_models 2>/dev/null | wc -l)"
 # Python deps for custom nodes
 ############################
 echo "=== Custom node Python dependencies ==="
-pip install diffusers gguf accelerate ftfy opencv-python-headless matplotlib
+pip install diffusers gguf accelerate ftfy opencv-python-headless matplotlib scikit-image ultralytics
 
 ############################
 # Model Whitelists
