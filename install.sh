@@ -114,7 +114,7 @@ echo "  upscale_models:   $(ls upscale_models 2>/dev/null | wc -l)"
 # Python deps for custom nodes
 ############################
 echo "=== Custom node Python dependencies ==="
-pip install diffusers gguf accelerate
+pip install diffusers gguf accelerate ftfy opencv-python-headless matplotlib
 
 ############################
 # Model Whitelists
