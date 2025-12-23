@@ -25,6 +25,9 @@ loras https://civitai.com/api/download/models/242639?type=Model&format=SafeTenso
 loras https://civitai.com/api/download/models/452767?type=Model&format=SafeTensor MS_Breasts_Style_V1_IL.safetensors
 loras https://civitai.com/api/download/models/584853?type=Model&format=SafeTensor Breast_Size_Slider_Illustrious_V2.safetensors
 loras https://civitai.com/api/download/models/482470?type=Model&format=PickleTensor cinematic_photography_detailed_illu_xl.safetensors
+loras https://civitai.com/api/download/models/1681903?type=Model&format=SafeTensor ILXL_Realism_Slider_V.1.safetensors
+loras https://civitai.com/api/download/models/1253047?type=Model&format=SafeTensor zy_illustrious_Realism_Enhancer_v1.safetensors
+loras https://civitai.com/api/download/models/717403?type=Model&format=SafeTensor zy_AmateurStyle_v2.safetensors
 
 # vae
 vae https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors wan_2.1_vae.safetensors
