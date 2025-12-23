@@ -137,12 +137,26 @@ done < "$MODELS_FILE"
 # Wait for all background downloads to complete
 wait
 
+############################
+# SAM model for Impact-Pack
+############################
+echo "=== Downloading SAM model for Impact-Pack ==="
+mkdir -p /workspace/ComfyUI/models/sams
+cd /workspace/ComfyUI/models/sams
+if [ ! -f sam_vit_b_01ec64.pth ]; then
+  curl -L -o sam_vit_b_01ec64.pth https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth
+  echo "✓ SAM model downloaded"
+else
+  echo "✓ SAM model already exists"
+fi
+
 echo "Model inventory:"
 echo "  checkpoints:      $(ls checkpoints 2>/dev/null | wc -l)"
 echo "  diffusion_models: $(ls diffusion_models 2>/dev/null | wc -l)"
 echo "  loras:            $(ls loras 2>/dev/null | wc -l)"
 echo "  text_encoders:    $(ls text_encoders 2>/dev/null | wc -l)"
 echo "  vae:              $(ls vae 2>/dev/null | wc -l)"
+echo "  sams:             $(ls sams 2>/dev/null | wc -l)"
 echo "  ultralytics/bbox: $(ls ultralytics/bbox 2>/dev/null | wc -l)"
 echo "  upscale_models:   $(ls upscale_models 2>/dev/null | wc -l)"
 
