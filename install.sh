@@ -56,10 +56,16 @@ else
   CURL_HDR=(-H "Authorization: Bearer ${HF_TOKEN}")
 fi
 
+# Headers for Civitai and general downloads
+CURL_HDR+=(
+  -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
+  -H "Accept: */*"
+)
+
 while read -r folder url filename; do
   [[ -z "$folder" || "$folder" =~ ^# ]] && continue
   echo "Checking: $url"
-  code=$(curl -s -o /dev/null -w "%{http_code}" -L --head "${CURL_HDR[@]}" "$url")
+  code=$(curl -s -o /dev/null -w "%{http_code}" -L "${CURL_HDR[@]}" "$url")
   if [[ "$code" != "200" ]]; then
     echo "ERROR: $url returned HTTP $code"
     exit 1
@@ -89,9 +95,12 @@ echo "=== Models ==="
 mkdir -p /workspace/ComfyUI/models
 cd /workspace/ComfyUI/models
 
-ARIA_HDR=()
+ARIA_HDR=(
+  --header="User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
+  --header="Accept: */*"
+)
 if [ -n "${HF_TOKEN:-}" ]; then
-  ARIA_HDR=(--header="Authorization: Bearer ${HF_TOKEN}")
+  ARIA_HDR+=(--header="Authorization: Bearer ${HF_TOKEN}")
 fi
 
 while read -r folder url filename; do
