@@ -102,6 +102,7 @@ while read -r folder url filename; do
 done < "$MODELS_FILE"
 
 echo "Model inventory:"
+echo "  checkpoints:      $(ls checkpoints 2>/dev/null | wc -l)"
 echo "  diffusion_models: $(ls diffusion_models 2>/dev/null | wc -l)"
 echo "  loras:            $(ls loras 2>/dev/null | wc -l)"
 echo "  text_encoders:    $(ls text_encoders 2>/dev/null | wc -l)"
@@ -113,7 +114,7 @@ echo "  upscale_models:   $(ls upscale_models 2>/dev/null | wc -l)"
 # Python deps for custom nodes
 ############################
 echo "=== Custom node Python dependencies ==="
-pip install diffusers gguf
+pip install diffusers gguf accelerate
 
 ############################
 # Model Whitelists
