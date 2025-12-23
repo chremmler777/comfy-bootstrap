@@ -1,13 +1,28 @@
 # diffusion models
-diffusion_models https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/diffusion_models/wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors
-diffusion_models https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/diffusion_models/wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors
+diffusion_models https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/diffusion_models/wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors
+diffusion_models https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/diffusion_models/wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors
+diffusion_models https://civitai.com/api/download/models/1942437?type=Model&format=SafeTensor&size=full&fp=fp16 illustrij_v16.safetensors
+diffusion_models https://civitai.com/api/download/models/2220886?type=Model&format=SafeTensor&size=pruned&fp=fp16 divingIllustriousReal_v50VAE.byZ0wI5w.safetensors
+diffusion_models https://civitai.com/api/download/models/1094291?type=Model&format=SafeTensor&size=pruned&fp=fp16 lustifySDXLNSFW_endgame.safetensors
+diffusion_models https://civitai.com/api/download/models/1305584?type=Model&format=SafeTensor&size=pruned&fp=fp16 xxxRay_v11.B9Nu1xsu.safetensors
 
 # loras
-loras https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors
-loras https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors
+loras https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors
+loras https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors
 
 # vae
-vae https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors
+vae https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors wan_2.1_vae.safetensors
+vae https://civitai.com/api/download/models/333245?type=Model&format=SafeTensor sdxlVAE_sdxlVAE.safetensors
 
 # text encoder (WAN 2.1 repo is correct here)
-text_encoders https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors
+text_encoders https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors umt5_xxl_fp8_e4m3fn_scaled.safetensors
+
+# Detection/YOLO models
+ultralytics/bbox https://huggingface.co/ashllay/YOLO_Models/resolve/e07b01219ff1807e1885015f439d788b038f49bd/bbox/penis.pt penis.pt
+ultralytics/bbox https://huggingface.co/ddoc/adtmo/resolve/3b19f8e9add520abf74b6c8d9ebcdff5c82059a9/nipple.pt nipple.pt
+ultralytics/bbox https://huggingface.co/ashllay/YOLO_Models/resolve/e07b01219ff1807e1885015f439d788b038f49bd/bbox/Eyeful_v2-Paired.pt Eyeful_v2-Paired.pt
+ultralytics/bbox https://huggingface.co/Bingsu/adetailer/resolve/main/face_yolov8m.pt face_yolov8m.pt
+ultralytics/bbox https://huggingface.co/Bingsu/adetailer/resolve/main/hand_yolov8s.pt hand_yolov8s.pt
+
+# Upscalers
+upscale_models https://huggingface.co/FacehugmanIII/4x_foolhardy_Remacri/resolve/main/4x_foolhardy_Remacri.pth 4x_foolhardy_Remacri.pth

@@ -56,7 +56,7 @@ else
   CURL_HDR=(-H "Authorization: Bearer ${HF_TOKEN}")
 fi
 
-while read -r folder url; do
+while read -r folder url filename; do
   [[ -z "$folder" || "$folder" =~ ^# ]] && continue
   echo "Checking: $url"
   code=$(curl -s -o /dev/null -w "%{http_code}" -L --head "${CURL_HDR[@]}" "$url")
@@ -94,10 +94,15 @@ if [ -n "${HF_TOKEN:-}" ]; then
   ARIA_HDR=(--header="Authorization: Bearer ${HF_TOKEN}")
 fi
 
-while read -r folder url; do
+while read -r folder url filename; do
   [[ -z "$folder" || "$folder" =~ ^# ]] && continue
 
-  fname="$(basename "$url")"
+  # Use custom filename if provided, otherwise extract from URL
+  if [ -z "$filename" ]; then
+    fname="$(basename "$url")"
+  else
+    fname="$filename"
+  fi
 
   echo "Downloading $fname → $folder"
   mkdir -p "$folder"
@@ -117,12 +122,30 @@ echo "  diffusion_models: $(ls diffusion_models 2>/dev/null | wc -l)"
 echo "  loras:            $(ls loras 2>/dev/null | wc -l)"
 echo "  text_encoders:    $(ls text_encoders 2>/dev/null | wc -l)"
 echo "  vae:              $(ls vae 2>/dev/null | wc -l)"
+echo "  ultralytics/bbox: $(ls ultralytics/bbox 2>/dev/null | wc -l)"
+echo "  upscale_models:   $(ls upscale_models 2>/dev/null | wc -l)"
 
 ############################
 # Python deps for custom nodes
 ############################
 echo "=== Custom node Python dependencies ==="
 pip install diffusers gguf
+
+############################
+# Model Whitelists
+############################
+echo "=== Creating model whitelists ==="
+mkdir -p /workspace/ComfyUI/user/default/ComfyUI-Impact-Subpack
+
+cat > /workspace/ComfyUI/user/default/ComfyUI-Impact-Subpack/model-whitelist.txt << 'EOF'
+bbox/penis.pt
+bbox/nipple.pt
+bbox/Eyeful_v2-Paired.pt
+bbox/face_yolov8m.pt
+bbox/hand_yolov8s.pt
+EOF
+
+echo "Whitelist created at: /workspace/ComfyUI/user/default/ComfyUI-Impact-Subpack/model-whitelist.txt"
 
 ############################
 # Workflows
