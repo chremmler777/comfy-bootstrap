@@ -45,34 +45,9 @@ fi
 MODELS_FILE="/workspace/bootstrap/models.txt"
 
 ############################
-# Validate model URLs
+# Skip URL validation - aria2c will handle errors
 ############################
-echo "=== Validating model URLs ==="
-
-if [ -z "${HF_TOKEN:-}" ]; then
-  echo "HF_TOKEN not set → validating anonymously"
-  CURL_HDR=()
-else
-  CURL_HDR=(-H "Authorization: Bearer ${HF_TOKEN}")
-fi
-
-# Headers for Civitai and general downloads
-CURL_HDR+=(
-  -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
-  -H "Accept: */*"
-)
-
-while read -r folder url filename; do
-  [[ -z "$folder" || "$folder" =~ ^# ]] && continue
-  echo "Checking: $url"
-  code=$(curl -s -o /dev/null -w "%{http_code}" -L "${CURL_HDR[@]}" "$url")
-  if [[ "$code" != "200" ]]; then
-    echo "ERROR: $url returned HTTP $code"
-    exit 1
-  fi
-done < "$MODELS_FILE"
-
-echo "All model URLs validated successfully."
+echo "=== Preparing model downloads (validation skipped for speed) ==="
 
 ############################
 # Custom nodes
