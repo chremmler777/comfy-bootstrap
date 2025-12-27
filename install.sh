@@ -222,17 +222,33 @@ while read -r folder url filename; do
       --continue=true \
       --allow-overwrite=true \
       --auto-file-renaming=false \
-      --show-console-readout=true \
-      --summary-interval=1 \
+      --log-level=error \
       -d "$folder" \
       -o "$fname" \
-      "$url" &
+      "$url" > /dev/null 2>&1 &
   fi
 
 done < "$MODELS_FILE"
 
-# Wait for all background downloads to complete
-wait
+# Wait for all background downloads to complete with progress indicator
+echo "Downloading models (parallel)..."
+TOTAL_FILES=$(grep -cv '^[[:space:]]*\(#\|$\)' "$MODELS_FILE")
+DOWNLOAD_COUNT=0
+
+while true; do
+  # Count completed files in all model directories
+  COMPLETED=$(find /workspace/ComfyUI/models -type f -newer /tmp/models_selected.txt 2>/dev/null | wc -l)
+
+  if [ $COMPLETED -ge $TOTAL_FILES ]; then
+    break
+  fi
+
+  printf "\r  Progress: %d/%d files downloaded" $COMPLETED $TOTAL_FILES
+  sleep 2
+done
+
+echo ""
+echo "✓ All models downloaded"
 
 ############################
 # SAM model for Impact-Pack
