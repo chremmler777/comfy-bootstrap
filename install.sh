@@ -232,38 +232,19 @@ done < "$MODELS_FILE"
 echo "Downloading $TOTAL_FILES models..."
 echo ""
 
+# Track last shown count to avoid spam
+LAST_COMPLETED=-1
+
 while true; do
   # Count remaining downloads
-  REMAINING=$(ls "$TRACK_DIR" 2>/dev/null | wc -l)
+  REMAINING=$(find "$TRACK_DIR" -type f 2>/dev/null | wc -l)
   COMPLETED=$((TOTAL_FILES - REMAINING))
 
-  # Clear previous output
-  tput cuu $((TOTAL_FILES + 2)) 2>/dev/null || true
-  tput el 2>/dev/null || true
-
-  # Show status line
-  printf "Progress: %d/%d completed\n\n" "$COMPLETED" "$TOTAL_FILES"
-
-  # Show each download status
-  while read -r folder url filename; do
-    [[ -z "$folder" || "$folder" =~ ^# ]] && continue
-
-    if [ -z "$filename" ]; then
-      fname="$(basename "$url")"
-    else
-      fname="$filename"
-    fi
-
-    TRACK_ID="${folder//\//_}__${fname//\//_}"
-
-    if [ -f "$TRACK_DIR/$TRACK_ID" ]; then
-      # Still downloading (blue)
-      printf "${BLUE}⬤${NC} %-50s %s\n" "$fname" "$folder"
-    else
-      # Completed (green)
-      printf "${GREEN}✓${NC} %-50s %s\n" "$fname" "$folder"
-    fi
-  done < "$MODELS_FILE"
+  # Only show update if progress changed
+  if [ $COMPLETED -ne $LAST_COMPLETED ]; then
+    echo "Progress: $COMPLETED/$TOTAL_FILES completed"
+    LAST_COMPLETED=$COMPLETED
+  fi
 
   if [ $REMAINING -eq 0 ]; then
     break
