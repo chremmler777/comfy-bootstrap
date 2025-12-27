@@ -20,6 +20,9 @@ fi
 
 cd ComfyUI
 
+# Apply fix for extra_config.py YAML parsing
+cp /workspace/bootstrap/extra_config.py /workspace/ComfyUI/utils/extra_config.py
+
 python3 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
