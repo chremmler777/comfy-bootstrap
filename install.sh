@@ -200,48 +200,32 @@ while read -r folder url filename; do
 
 done < "$MODELS_FILE"
 
-# Monitor downloads with clean single-line progress
-TOTAL_FILES=$(grep -cv '^[[:space:]]*\(#\|$\)' "$MODELS_FILE")
+# Wait for downloads with simple progress indicator
+echo "Downloading models..."
 DOWNLOAD_START=$(date +%s)
 
 while true; do
-  # Count completed files
-  COMPLETED=$(find /workspace/ComfyUI/models -type f -newer /tmp/models_selected.txt 2>/dev/null | wc -l)
+  ACTIVE=$(jobs -r 2>/dev/null | wc -l)
 
-  # Check if all downloads done
-  if [ $COMPLETED -ge $TOTAL_FILES ]; then
+  if [ $ACTIVE -eq 0 ]; then
     break
   fi
 
-  # Calculate stats
   CURRENT_TIME=$(date +%s)
   ELAPSED=$((CURRENT_TIME - DOWNLOAD_START))
-  PERCENT=$((COMPLETED * 100 / TOTAL_FILES))
-  [ $PERCENT -gt 100 ] && PERCENT=100
 
-  # Get total downloaded bytes
-  DOWNLOADED_BYTES=$(du -sb /workspace/ComfyUI/models 2>/dev/null | awk '{print $1}')
+  # Get total downloaded bytes for speed calculation
+  TOTAL_BYTES=$(du -sb /workspace/ComfyUI/models 2>/dev/null | awk '{print $1}')
 
-  # Calculate speed and ETA
-  if [ $ELAPSED -gt 0 ]; then
-    SPEED_BYTES=$((DOWNLOADED_BYTES / ELAPSED))
+  if [ $ELAPSED -gt 0 ] && [ "$TOTAL_BYTES" -gt 0 ]; then
+    SPEED_BYTES=$((TOTAL_BYTES / ELAPSED))
     SPEED_MB=$(echo "scale=1; $SPEED_BYTES / 1048576" | bc 2>/dev/null || echo "0")
-
-    if [ "$SPEED_BYTES" -gt 0 ]; then
-      REMAINING_FILES=$((TOTAL_FILES - COMPLETED))
-      AVG_FILE_SIZE=$((DOWNLOADED_BYTES / (COMPLETED + 1)))
-      REMAINING_BYTES=$((REMAINING_FILES * AVG_FILE_SIZE))
-      ETA=$((REMAINING_BYTES / SPEED_BYTES))
-    else
-      ETA=0
-    fi
   else
     SPEED_MB="0"
-    ETA=0
   fi
 
-  printf "[%3d%%] Speed: %s MB/s | ETA: %ds | %d/%d files\n" $PERCENT "$SPEED_MB" $ETA $COMPLETED $TOTAL_FILES
-  sleep 1
+  echo "[$(date +%H:%M:%S)] Downloading... Speed: $SPEED_MB MB/s | ${TOTAL_BYTES} bytes | Active jobs: $ACTIVE"
+  sleep 2
 done
 
 wait
