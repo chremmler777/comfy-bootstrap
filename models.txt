@@ -1,6 +1,9 @@
 # diffusion models
-diffusion_models https://civitai.com/api/download/models/2381931?type=Model&format=SafeTensor&size=pruned&fp=fp8 Wan22remixhigh.safetensors
-diffusion_models https://civitai.com/api/download/models/2424912?type=Model&format=SafeTensor&size=pruned&fp=fp8 Wan22remixlow.safetensors
+# WAN 2.2 Models
+diffusion_models/wan https://civitai.com/api/download/models/2381931?type=Model&format=SafeTensor&size=pruned&fp=fp8 Wan22remixhigh.safetensors
+diffusion_models/wan https://civitai.com/api/download/models/2424912?type=Model&format=SafeTensor&size=pruned&fp=fp8 Wan22remixlow.safetensors
+diffusion_models/wan https://civitai.com/api/download/models/2424167?type=Model&format=SafeTensor&size=pruned&fp=fp8 WAN22_TV_High.safetensors
+diffusion_models/wan https://civitai.com/api/download/models/2424912?type=Model&format=SafeTensor&size=pruned&fp=fp8 WAN22_TV_Low.safetensors
 
 # SDXL Checkpoints
 checkpoints https://civitai.com/api/download/models/2427287?type=Model&format=SafeTensor&size=full&fp=fp16 illustrij_v19.safetensors
