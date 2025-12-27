@@ -170,6 +170,9 @@ ARIA_HDR=(
 if [ -n "${HF_TOKEN:-}" ]; then
   ARIA_HDR+=(--header="Authorization: Bearer ${HF_TOKEN}")
 fi
+if [ -n "${CIVITAI_TOKEN:-}" ]; then
+  ARIA_HDR+=(--header="Authorization: Bearer ${CIVITAI_TOKEN}")
+fi
 
 while read -r folder url filename; do
   [[ -z "$folder" || "$folder" =~ ^# ]] && continue
@@ -184,88 +187,23 @@ while read -r folder url filename; do
   echo "Downloading $fname → $folder"
   mkdir -p "$folder"
 
-  # Use curl for Civitai downloads to handle redirects with auth headers (sequential - avoids rate limiting)
-  if [[ "$url" =~ civitai.com ]]; then
-    echo "Downloading $fname → $folder (using curl with Civitai auth - parallel)"
-
-    # Retry logic for Civitai downloads (run in background for parallel processing)
-    (
-      RETRY_COUNT=0
-      MAX_RETRIES=3
-
-      while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-        curl -s -L -C - \
-          -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" \
-          ${CIVITAI_TOKEN:+-H "Authorization: Bearer ${CIVITAI_TOKEN}"} \
-          -o "$folder/$fname" \
-          "$url"
-
-        # Check if file is corrupted (< 500KB is likely HTML error page)
-        if [ -f "$folder/$fname" ]; then
-          FILE_SIZE=$(stat -f%z "$folder/$fname" 2>/dev/null || stat -c%s "$folder/$fname" 2>/dev/null)
-          if [ "$FILE_SIZE" -lt 500000 ]; then
-            echo "⚠️  Downloaded file too small ($FILE_SIZE bytes) - likely corrupted. Retrying..."
-            rm "$folder/$fname"
-            RETRY_COUNT=$((RETRY_COUNT + 1))
-            sleep 5
-          else
-            echo "✓ Download successful ($FILE_SIZE bytes)"
-            break
-          fi
-        fi
-      done
-    ) &
-  else
-    # Use aria2c for other sources (faster with parallel connections, run in background)
-    DOWNLOAD_HEADERS=("${ARIA_HDR[@]}")
-    aria2c -x16 -s16 "${DOWNLOAD_HEADERS[@]}" \
-      --continue=true \
-      --allow-overwrite=true \
-      --auto-file-renaming=false \
-      --log-level=error \
-      -d "$folder" \
-      -o "$fname" \
-      "$url" > /dev/null 2>&1 &
-  fi
+  # Use aria2c for all downloads (faster with parallel connections)
+  DOWNLOAD_HEADERS=("${ARIA_HDR[@]}")
+  aria2c -x32 -s32 "${DOWNLOAD_HEADERS[@]}" \
+    --continue=true \
+    --allow-overwrite=true \
+    --auto-file-renaming=false \
+    --log-level=error \
+    -d "$folder" \
+    -o "$fname" \
+    "$url" > /dev/null 2>&1 &
 
 done < "$MODELS_FILE"
 
-# Wait for all background downloads to complete with progress indicator
-echo "Downloading models (parallel)..."
-TOTAL_FILES=$(grep -cv '^[[:space:]]*\(#\|$\)' "$MODELS_FILE")
-DOWNLOAD_START=$(date +%s)
+# Wait for all background downloads to complete
+echo "Downloading models (parallel with aria2c)..."
+wait
 
-while true; do
-  # Count completed files in all model directories
-  COMPLETED=$(find /workspace/ComfyUI/models -type f -newer /tmp/models_selected.txt 2>/dev/null | wc -l)
-
-  if [ $COMPLETED -ge $TOTAL_FILES ]; then
-    break
-  fi
-
-  # Calculate download progress
-  PERCENT=$((COMPLETED * 100 / TOTAL_FILES))
-
-  # Get total downloaded bytes
-  DOWNLOADED_BYTES=$(du -sb /workspace/ComfyUI/models 2>/dev/null | awk '{print $1}')
-  DOWNLOADED_MB=$(echo "scale=1; $DOWNLOADED_BYTES / 1048576" | bc 2>/dev/null || echo "0")
-
-  # Calculate elapsed time and speed
-  CURRENT_TIME=$(date +%s)
-  ELAPSED=$((CURRENT_TIME - DOWNLOAD_START))
-
-  if [ $ELAPSED -gt 0 ]; then
-    SPEED_BYTES=$((DOWNLOADED_BYTES / ELAPSED))
-    SPEED_MB=$(echo "scale=1; $SPEED_BYTES / 1048576" | bc 2>/dev/null || echo "0")
-  else
-    SPEED_MB="0"
-  fi
-
-  printf "\r  [%3d%%] %d/%d files | %.1f MB | Speed: %.1f MB/s" $PERCENT $COMPLETED $TOTAL_FILES $DOWNLOADED_MB $SPEED_MB
-  sleep 2
-done
-
-echo ""
 echo "✓ All models downloaded"
 
 ############################
@@ -275,7 +213,13 @@ echo "=== Downloading SAM model for Impact-Pack ==="
 mkdir -p /workspace/ComfyUI/models/sams
 cd /workspace/ComfyUI/models/sams
 if [ ! -f sam_vit_b_01ec64.pth ]; then
-  curl -s -L -o sam_vit_b_01ec64.pth https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth
+  aria2c -x16 -s16 \
+    --continue=true \
+    --allow-overwrite=true \
+    --auto-file-renaming=false \
+    --log-level=error \
+    -o sam_vit_b_01ec64.pth \
+    https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth > /dev/null 2>&1
   echo "✓ SAM model downloaded"
 else
   echo "✓ SAM model already exists"
