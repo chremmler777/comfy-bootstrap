@@ -200,22 +200,19 @@ while read -r folder url filename; do
 
 done < "$MODELS_FILE"
 
-# Wait for downloads with simple progress indicator
+# Wait for downloads with continuous status output
 echo "Downloading models..."
 DOWNLOAD_START=$(date +%s)
 
-while true; do
+while sleep 2; do
   ACTIVE=$(jobs -r 2>/dev/null | wc -l)
-
-  if [ $ACTIVE -eq 0 ]; then
-    break
-  fi
 
   CURRENT_TIME=$(date +%s)
   ELAPSED=$((CURRENT_TIME - DOWNLOAD_START))
 
-  # Get total downloaded bytes for speed calculation
+  # Get total downloaded bytes
   TOTAL_BYTES=$(du -sb /workspace/ComfyUI/models 2>/dev/null | awk '{print $1}')
+  TOTAL_GB=$(echo "scale=1; $TOTAL_BYTES / 1073741824" | awk '{print int($1*10)/10}')
 
   if [ $ELAPSED -gt 0 ] && [ "$TOTAL_BYTES" -gt 0 ]; then
     SPEED_MB=$((TOTAL_BYTES / (ELAPSED * 1048576)))
@@ -223,12 +220,16 @@ while true; do
     SPEED_MB="0"
   fi
 
-  echo "[$(date +%H:%M:%S)] Downloading... Speed: $SPEED_MB MB/s | ${TOTAL_BYTES} bytes | Active jobs: $ACTIVE"
-  sleep 2
+  printf "[%s] Status: %d active jobs | Speed: %d MB/s | Downloaded: %.1f GB\n" "$(date +%H:%M:%S)" "$ACTIVE" "$SPEED_MB" "$TOTAL_GB"
+
+  if [ $ACTIVE -eq 0 ]; then
+    break
+  fi
 done
 
 wait
 
+echo ""
 echo "✓ All models downloaded"
 
 ############################
