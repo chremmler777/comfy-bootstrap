@@ -2,6 +2,17 @@
 set -e
 
 ############################
+# Setup logging to file and terminal
+############################
+mkdir -p /workspace/logs
+LOG_FILE="/workspace/logs/install_$(date +%Y%m%d_%H%M%S).log"
+exec &> >(tee -a "$LOG_FILE")
+echo "=== Installation Log ==="
+echo "Log file: $LOG_FILE"
+echo "Start time: $(date)"
+echo ""
+
+############################
 # Bootstrap repo (clone first for model selection)
 ############################
 echo "=== Pull bootstrap data ==="
@@ -289,3 +300,19 @@ nohup python main.py \
 
 echo "ComfyUI started."
 echo "Log file: /workspace/comfyui.log"
+echo ""
+echo "════════════════════════════════════════════════════"
+echo "Installation completed!"
+echo "════════════════════════════════════════════════════"
+echo ""
+echo "📋 Installation log saved to:"
+echo "   $LOG_FILE"
+echo ""
+echo "🔍 To troubleshoot later, view the full installation log:"
+echo "   cat $LOG_FILE"
+echo ""
+echo "📊 ComfyUI runtime logs:"
+echo "   /workspace/comfyui.log"
+echo ""
+echo "✅ Ready to use!"
+echo "════════════════════════════════════════════════════"
