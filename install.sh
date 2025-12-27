@@ -253,7 +253,14 @@ while true; do
   sleep 2
 done
 
-wait
+# Wait for remaining background jobs with timeout
+timeout 30 wait 2>/dev/null || true
+
+# Kill any remaining aria2c or curl processes
+pkill -f "aria2c|curl" 2>/dev/null || true
+
+# Clean up tracking directory
+rm -rf "$TRACK_DIR"
 
 echo ""
 echo "✓ All models downloaded"
