@@ -26,6 +26,8 @@ loras/waniv https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/
 # WAN General LoRAs (compatible with both T2V and IV)
 loras/wan https://civitai.com/api/download/models/2267701?type=Model&format=SafeTensor PenisLora_High.safetensors
 loras/wan https://civitai.com/api/download/models/2267701?type=Model&format=SafeTensor PenisLora_Low.safetensors
+loras/wan https://civitai.com/api/download/models/2282761?type=Model&format=SafeTensor Braless_High.safetensors
+loras/wan https://civitai.com/api/download/models/2282767?type=Model&format=SafeTensor Braless_Low.safetensors
 
 # SDXL LoRAs
 loras/sd https://huggingface.co/LyliaEngine/spo_sdxl_10ep_4k-data_lora_webui/resolve/main/spo_sdxl_10ep_4k-data_lora_webui.safetensors spo_sdxl_10ep_4k-data_lora_webui.safetensors
