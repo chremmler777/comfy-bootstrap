@@ -45,12 +45,49 @@ fi
 # Apply fix for extra_config.py YAML parsing
 cp /workspace/bootstrap/extra_config.py /workspace/ComfyUI/utils/extra_config.py
 
-MODELS_FILE="/workspace/bootstrap/models.txt"
+############################
+# WAN Model Selection Menu
+############################
+echo ""
+echo "╔════════════════════════════════════════╗"
+echo "║     WAN 2.2 Model Selection Menu       ║"
+echo "╚════════════════════════════════════════╝"
+echo ""
+echo "Which WAN 2.2 models would you like to download?"
+echo "  1) Text-to-Video only (remix models)"
+echo "  2) Image-to-Video only (TV models)"
+echo "  3) Both (text-to-video + image-to-video)"
+echo ""
+read -p "Enter your choice (1/2/3) [default: 3]: " WAN_CHOICE
+WAN_CHOICE=${WAN_CHOICE:-3}
+
+# Create temp models file based on selection
+MODELS_FILE="/tmp/models_selected.txt"
+cp /workspace/bootstrap/models.txt "$MODELS_FILE"
+
+case "$WAN_CHOICE" in
+  1)
+    echo "✓ Downloading Text-to-Video models only"
+    sed -i '/WAN22_TV/d' "$MODELS_FILE"
+    ;;
+  2)
+    echo "✓ Downloading Image-to-Video models only"
+    sed -i '/remix/d' "$MODELS_FILE"
+    ;;
+  3)
+    echo "✓ Downloading all WAN models (text-to-video + image-to-video)"
+    ;;
+  *)
+    echo "Invalid choice. Defaulting to all models."
+    MODELS_FILE="/workspace/bootstrap/models.txt"
+    ;;
+esac
+echo ""
 
 ############################
 # Skip URL validation - aria2c will handle errors
 ############################
-echo "=== Preparing model downloads (validation skipped for speed) ==="
+echo "=== Preparing model downloads ==="
 
 ############################
 # Custom nodes
@@ -104,7 +141,7 @@ while read -r folder url filename; do
       MAX_RETRIES=3
 
       while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-        curl -L -C - \
+        curl -s -L -C - \
           -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" \
           ${CIVITAI_TOKEN:+-H "Authorization: Bearer ${CIVITAI_TOKEN}"} \
           -o "$folder/$fname" \
@@ -132,6 +169,7 @@ while read -r folder url filename; do
       --continue=true \
       --allow-overwrite=true \
       --auto-file-renaming=false \
+      --quiet=true \
       -d "$folder" \
       -o "$fname" \
       "$url" &
@@ -149,7 +187,7 @@ echo "=== Downloading SAM model for Impact-Pack ==="
 mkdir -p /workspace/ComfyUI/models/sams
 cd /workspace/ComfyUI/models/sams
 if [ ! -f sam_vit_b_01ec64.pth ]; then
-  curl -L -o sam_vit_b_01ec64.pth https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth
+  curl -s -L -o sam_vit_b_01ec64.pth https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth
   echo "✓ SAM model downloaded"
 else
   echo "✓ SAM model already exists"
