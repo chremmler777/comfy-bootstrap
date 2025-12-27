@@ -2,7 +2,21 @@
 set -e
 
 ############################
-# Model Selection Menu (at startup - before any downloads)
+# Bootstrap repo (clone first for model selection)
+############################
+echo "=== Pull bootstrap data ==="
+cd /workspace
+
+if [ ! -d bootstrap ]; then
+  git clone https://github.com/chremmler777/comfy-bootstrap.git bootstrap
+else
+  cd bootstrap
+  git pull
+  cd /workspace
+fi
+
+############################
+# Model Selection Menu (before system dependencies)
 ############################
 echo ""
 echo "╔════════════════════════════════════════════════╗"
@@ -108,19 +122,6 @@ pip install torch torchvision torchaudio \
   --index-url https://download.pytorch.org/whl/cu121
 
 pip install -r requirements.txt
-
-############################
-# Bootstrap repo
-############################
-echo "=== Pull bootstrap data ==="
-cd /workspace
-
-if [ ! -d bootstrap ]; then
-  git clone https://github.com/chremmler777/comfy-bootstrap.git bootstrap
-else
-  cd bootstrap
-  git pull
-fi
 
 # Apply fix for extra_config.py YAML parsing
 cp /workspace/bootstrap/extra_config.py /workspace/ComfyUI/utils/extra_config.py
