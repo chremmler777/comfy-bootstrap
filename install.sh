@@ -171,6 +171,20 @@ if [ -n "${HF_TOKEN:-}" ]; then
   ARIA_HDR+=(--header="Authorization: Bearer ${HF_TOKEN}")
 fi
 
+# Create tracking directory for live status
+TRACK_DIR="/tmp/model_downloads"
+rm -rf "$TRACK_DIR"
+mkdir -p "$TRACK_DIR"
+
+# Color codes
+BLUE='\033[0;34m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+
+# Count total files
+TOTAL_FILES=$(grep -cv '^[[:space:]]*\(#\|$\)' "$MODELS_FILE")
+
+# Start all downloads in background
 while read -r folder url filename; do
   [[ -z "$folder" || "$folder" =~ ^# ]] && continue
 
@@ -181,33 +195,83 @@ while read -r folder url filename; do
     fname="$filename"
   fi
 
-  echo "Downloading $fname → $folder"
+  # Create tracking marker file
+  TRACK_ID="${folder//\//_}__${fname//\//_}"
+  touch "$TRACK_DIR/$TRACK_ID"
+
   mkdir -p "$folder"
 
   # Use curl for Civitai downloads to handle redirects with auth headers (run in background)
   if [[ "$url" =~ civitai.com ]]; then
     (
-      curl -L -C - \
+      curl -s -L -C - \
         -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" \
         ${CIVITAI_TOKEN:+-H "Authorization: Bearer ${CIVITAI_TOKEN}"} \
         -o "$folder/$fname" \
-        "$url"
+        "$url" 2>/dev/null
+      rm "$TRACK_DIR/$TRACK_ID"
     ) &
   else
     # Use aria2c for other sources (faster with parallel connections, run in background)
-    DOWNLOAD_HEADERS=("${ARIA_HDR[@]}")
-    aria2c -x16 -s16 "${DOWNLOAD_HEADERS[@]}" \
-      --continue=true \
-      --allow-overwrite=true \
-      --auto-file-renaming=false \
-      -d "$folder" \
-      -o "$fname" \
-      "$url" &
+    (
+      DOWNLOAD_HEADERS=("${ARIA_HDR[@]}")
+      aria2c -q -x16 -s16 "${DOWNLOAD_HEADERS[@]}" \
+        --continue=true \
+        --allow-overwrite=true \
+        --auto-file-renaming=false \
+        -d "$folder" \
+        -o "$fname" \
+        "$url" >/dev/null 2>&1
+      rm "$TRACK_DIR/$TRACK_ID"
+    ) &
   fi
 
 done < "$MODELS_FILE"
 
-# Wait for all background downloads to complete
+# Show live download status
+echo "Downloading $TOTAL_FILES models..."
+echo ""
+
+while true; do
+  # Count remaining downloads
+  REMAINING=$(ls "$TRACK_DIR" 2>/dev/null | wc -l)
+  COMPLETED=$((TOTAL_FILES - REMAINING))
+
+  # Clear previous output
+  tput cuu $((TOTAL_FILES + 2)) 2>/dev/null || true
+  tput el 2>/dev/null || true
+
+  # Show status line
+  printf "Progress: %d/%d completed\n\n" "$COMPLETED" "$TOTAL_FILES"
+
+  # Show each download status
+  while read -r folder url filename; do
+    [[ -z "$folder" || "$folder" =~ ^# ]] && continue
+
+    if [ -z "$filename" ]; then
+      fname="$(basename "$url")"
+    else
+      fname="$filename"
+    fi
+
+    TRACK_ID="${folder//\//_}__${fname//\//_}"
+
+    if [ -f "$TRACK_DIR/$TRACK_ID" ]; then
+      # Still downloading (blue)
+      printf "${BLUE}⬤${NC} %-50s %s\n" "$fname" "$folder"
+    else
+      # Completed (green)
+      printf "${GREEN}✓${NC} %-50s %s\n" "$fname" "$folder"
+    fi
+  done < "$MODELS_FILE"
+
+  if [ $REMAINING -eq 0 ]; then
+    break
+  fi
+
+  sleep 2
+done
+
 wait
 
 echo ""
