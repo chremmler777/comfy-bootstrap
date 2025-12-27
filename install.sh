@@ -193,10 +193,11 @@ while read -r folder url filename; do
     --continue=true \
     --allow-overwrite=true \
     --auto-file-renaming=false \
-    --log-level=error \
+    --show-console-readout=true \
+    --summary-interval=1 \
     -d "$folder" \
     -o "$fname" \
-    "$url" > /dev/null 2>&1 &
+    "$url" &
 
 done < "$MODELS_FILE"
 
@@ -217,9 +218,10 @@ if [ ! -f sam_vit_b_01ec64.pth ]; then
     --continue=true \
     --allow-overwrite=true \
     --auto-file-renaming=false \
-    --log-level=error \
+    --show-console-readout=true \
+    --summary-interval=1 \
     -o sam_vit_b_01ec64.pth \
-    https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth > /dev/null 2>&1
+    https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth
   echo "✓ SAM model downloaded"
 else
   echo "✓ SAM model already exists"
