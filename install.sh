@@ -189,7 +189,7 @@ while read -r folder url filename; do
 
   # Use aria2c for all downloads (faster with parallel connections)
   DOWNLOAD_HEADERS=("${ARIA_HDR[@]}")
-  aria2c -x32 -s32 "${DOWNLOAD_HEADERS[@]}" \
+  aria2c -x16 -s16 "${DOWNLOAD_HEADERS[@]}" \
     --continue=true \
     --allow-overwrite=true \
     --auto-file-renaming=false \
