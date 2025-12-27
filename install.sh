@@ -233,7 +233,7 @@ done < "$MODELS_FILE"
 # Wait for all background downloads to complete with progress indicator
 echo "Downloading models (parallel)..."
 TOTAL_FILES=$(grep -cv '^[[:space:]]*\(#\|$\)' "$MODELS_FILE")
-DOWNLOAD_COUNT=0
+DOWNLOAD_START=$(date +%s)
 
 while true; do
   # Count completed files in all model directories
@@ -243,7 +243,25 @@ while true; do
     break
   fi
 
-  printf "\r  Progress: %d/%d files downloaded" $COMPLETED $TOTAL_FILES
+  # Calculate download progress
+  PERCENT=$((COMPLETED * 100 / TOTAL_FILES))
+
+  # Get total downloaded bytes
+  DOWNLOADED_BYTES=$(du -sb /workspace/ComfyUI/models 2>/dev/null | awk '{print $1}')
+  DOWNLOADED_MB=$(echo "scale=1; $DOWNLOADED_BYTES / 1048576" | bc 2>/dev/null || echo "0")
+
+  # Calculate elapsed time and speed
+  CURRENT_TIME=$(date +%s)
+  ELAPSED=$((CURRENT_TIME - DOWNLOAD_START))
+
+  if [ $ELAPSED -gt 0 ]; then
+    SPEED_BYTES=$((DOWNLOADED_BYTES / ELAPSED))
+    SPEED_MB=$(echo "scale=1; $SPEED_BYTES / 1048576" | bc 2>/dev/null || echo "0")
+  else
+    SPEED_MB="0"
+  fi
+
+  printf "\r  [%3d%%] %d/%d files | %.1f MB | Speed: %.1f MB/s" $PERCENT $COMPLETED $TOTAL_FILES $DOWNLOADED_MB $SPEED_MB
   sleep 2
 done
 
