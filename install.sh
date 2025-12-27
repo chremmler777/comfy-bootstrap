@@ -194,7 +194,7 @@ while read -r folder url filename; do
       MAX_RETRIES=3
 
       while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-        curl -L -C - --progress-bar \
+        curl -s -L -C - \
           -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" \
           ${CIVITAI_TOKEN:+-H "Authorization: Bearer ${CIVITAI_TOKEN}"} \
           -o "$folder/$fname" \
@@ -257,7 +257,7 @@ echo "=== Downloading SAM model for Impact-Pack ==="
 mkdir -p /workspace/ComfyUI/models/sams
 cd /workspace/ComfyUI/models/sams
 if [ ! -f sam_vit_b_01ec64.pth ]; then
-  curl -L --progress-bar -o sam_vit_b_01ec64.pth https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth
+  curl -s -L -o sam_vit_b_01ec64.pth https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth
   echo "✓ SAM model downloaded"
 else
   echo "✓ SAM model already exists"
@@ -277,7 +277,7 @@ echo "  upscale_models:   $(ls upscale_models 2>/dev/null | wc -l)"
 # Python deps for custom nodes
 ############################
 echo "=== Custom node Python dependencies ==="
-pip install diffusers gguf accelerate ftfy opencv-python-headless matplotlib scikit-image ultralytics piexif dill segment-anything
+pip install --quiet diffusers gguf accelerate ftfy opencv-python-headless matplotlib scikit-image ultralytics piexif dill segment-anything 2>&1 | grep -E "^(ERROR|Successfully)" || true
 
 ############################
 # Model Whitelists
