@@ -13,6 +13,11 @@ checkpoints https://civitai.com/api/download/models/1305584?type=Model&format=Sa
 checkpoints https://huggingface.co/BusterBoo99xX/novaAsianXL_illustriousV50/resolve/main/novaAsianXL_illustriousV50.safetensors novaAsianXL_illustriousV50.safetensors
 
 # loras
+# WAN LoRAs
+loras/wan https://civitai.com/api/download/models/2267701?type=Model&format=SafeTensor PenisLora_High.safetensors
+loras/wan https://civitai.com/api/download/models/2267701?type=Model&format=SafeTensor PenisLora_Low.safetensors
+
+# WAN Animation LoRAs
 loras https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors
 loras https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors
 

@@ -103,6 +103,11 @@ if [ $INCLUDE_WAN_TV -eq 0 ]; then
   sed -i '/WAN22_TV/d' "$MODELS_FILE"
 fi
 
+# Remove WAN LoRAs only if NO WAN options selected
+if [ $INCLUDE_WAN_REMIX -eq 0 ] && [ $INCLUDE_WAN_TV -eq 0 ]; then
+  sed -i '/loras\/wan/d' "$MODELS_FILE"
+fi
+
 if [ $INCLUDE_SDXL -eq 0 ]; then
   # Remove SDXL checkpoint models (but keep VAE and other components)
   sed -i '/illustrij_v19\|lustifySDXLNSFW_endgame\|novaAsianXL\|xxxRay_v11/d' "$MODELS_FILE"
