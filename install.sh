@@ -46,42 +46,75 @@ fi
 cp /workspace/bootstrap/extra_config.py /workspace/ComfyUI/utils/extra_config.py
 
 ############################
-# WAN Model Selection Menu
+# Model Selection Menu
 ############################
 echo ""
-echo "╔════════════════════════════════════════╗"
-echo "║     WAN 2.2 Model Selection Menu       ║"
-echo "╚════════════════════════════════════════╝"
+echo "╔════════════════════════════════════════════════╗"
+echo "║         Model Selection Menu                   ║"
+echo "╚════════════════════════════════════════════════╝"
 echo ""
-echo "Which WAN 2.2 models would you like to download?"
-echo "  1) Text-to-Video only (remix models)"
-echo "  2) Image-to-Video only (TV models)"
-echo "  3) Both (text-to-video + image-to-video)"
+echo "Which model packages would you like to download?"
+echo "  1) WAN 2.2 Text-to-Video (remix models)"
+echo "  2) WAN 2.2 Image-to-Video (TV models)"
+echo "  3) SDXL Workflow (illustrij, lustify, nova, xxxray)"
 echo ""
-read -p "Enter your choice (1/2/3) [default: 3]: " WAN_CHOICE
-WAN_CHOICE=${WAN_CHOICE:-3}
+echo "Select multiple options separated by spaces (e.g., '1 3' for WAN T2V + SDXL)"
+echo "Press Enter for all options [default: 1 2 3]"
+echo ""
+read -p "Enter your choices: " MODEL_CHOICES
+MODEL_CHOICES=${MODEL_CHOICES:-1 2 3}
 
 # Create temp models file based on selection
 MODELS_FILE="/tmp/models_selected.txt"
 cp /workspace/bootstrap/models.txt "$MODELS_FILE"
 
-case "$WAN_CHOICE" in
-  1)
-    echo "✓ Downloading Text-to-Video models only"
-    sed -i '/WAN22_TV/d' "$MODELS_FILE"
-    ;;
-  2)
-    echo "✓ Downloading Image-to-Video models only"
-    sed -i '/remix/d' "$MODELS_FILE"
-    ;;
-  3)
-    echo "✓ Downloading all WAN models (text-to-video + image-to-video)"
-    ;;
-  *)
-    echo "Invalid choice. Defaulting to all models."
-    MODELS_FILE="/workspace/bootstrap/models.txt"
-    ;;
-esac
+# Track what's being downloaded
+DOWNLOAD_LIST=""
+INCLUDE_WAN_REMIX=0
+INCLUDE_WAN_TV=0
+INCLUDE_SDXL=0
+
+# Parse selections
+for choice in $MODEL_CHOICES; do
+  case "$choice" in
+    1)
+      INCLUDE_WAN_REMIX=1
+      DOWNLOAD_LIST="$DOWNLOAD_LIST WAN-T2V"
+      ;;
+    2)
+      INCLUDE_WAN_TV=1
+      DOWNLOAD_LIST="$DOWNLOAD_LIST WAN-IV"
+      ;;
+    3)
+      INCLUDE_SDXL=1
+      DOWNLOAD_LIST="$DOWNLOAD_LIST SDXL"
+      ;;
+  esac
+done
+
+# Filter models based on selections
+if [ $INCLUDE_WAN_REMIX -eq 0 ]; then
+  # Remove remix models
+  sed -i '/remix/d' "$MODELS_FILE"
+fi
+
+if [ $INCLUDE_WAN_TV -eq 0 ]; then
+  # Remove TV models
+  sed -i '/WAN22_TV/d' "$MODELS_FILE"
+fi
+
+if [ $INCLUDE_SDXL -eq 0 ]; then
+  # Remove SDXL checkpoint models (but keep VAE and other components)
+  sed -i '/illustrij_v19\|lustifySDXLNSFW_endgame\|novaAsianXL\|xxxRay_v11/d' "$MODELS_FILE"
+fi
+
+# Show selections
+if [ -z "$DOWNLOAD_LIST" ]; then
+  echo "⚠️  No models selected. Defaulting to all options."
+  MODELS_FILE="/workspace/bootstrap/models.txt"
+else
+  echo "✓ Downloading:$DOWNLOAD_LIST"
+fi
 echo ""
 
 ############################
