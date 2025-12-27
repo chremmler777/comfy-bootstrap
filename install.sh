@@ -193,18 +193,62 @@ while read -r folder url filename; do
     --continue=true \
     --allow-overwrite=true \
     --auto-file-renaming=false \
-    --show-console-readout=true \
-    --summary-interval=1 \
+    --log-level=error \
     -d "$folder" \
     -o "$fname" \
-    "$url" &
+    "$url" > /dev/null 2>&1 &
 
 done < "$MODELS_FILE"
 
-# Wait for all background downloads to complete
-echo "Downloading models (parallel with aria2c)..."
+# Monitor downloads with clean single-line progress
+echo "Downloading models (parallel)..."
+TOTAL_FILES=$(grep -cv '^[[:space:]]*\(#\|$\)' "$MODELS_FILE")
+DOWNLOAD_START=$(date +%s)
+
+while true; do
+  # Count completed files
+  COMPLETED=$(find /workspace/ComfyUI/models -type f -newer /tmp/models_selected.txt 2>/dev/null | wc -l)
+
+  # Check if all downloads done
+  if [ $COMPLETED -ge $TOTAL_FILES ]; then
+    break
+  fi
+
+  # Calculate stats
+  CURRENT_TIME=$(date +%s)
+  ELAPSED=$((CURRENT_TIME - DOWNLOAD_START))
+  PERCENT=$((COMPLETED * 100 / TOTAL_FILES))
+  [ $PERCENT -gt 100 ] && PERCENT=100
+
+  # Get total downloaded bytes
+  DOWNLOADED_BYTES=$(du -sb /workspace/ComfyUI/models 2>/dev/null | awk '{print $1}')
+
+  # Calculate speed and ETA
+  if [ $ELAPSED -gt 0 ]; then
+    SPEED_BYTES=$((DOWNLOADED_BYTES / ELAPSED))
+    SPEED_MB=$(echo "scale=1; $SPEED_BYTES / 1048576" | bc 2>/dev/null || echo "0")
+
+    if [ "$SPEED_BYTES" -gt 0 ]; then
+      REMAINING_FILES=$((TOTAL_FILES - COMPLETED))
+      # Rough estimate: assume remaining files average size of completed ones
+      AVG_FILE_SIZE=$((DOWNLOADED_BYTES / (COMPLETED + 1)))
+      REMAINING_BYTES=$((REMAINING_FILES * AVG_FILE_SIZE))
+      ETA=$((REMAINING_BYTES / SPEED_BYTES))
+    else
+      ETA=0
+    fi
+  else
+    SPEED_MB="0"
+    ETA=0
+  fi
+
+  printf "\r[%3d%%] Speed: %s MB/s | ETA: %ds | %d/%d files" $PERCENT "$SPEED_MB" $ETA $COMPLETED $TOTAL_FILES
+  sleep 1
+done
+
 wait
 
+echo ""
 echo "✓ All models downloaded"
 
 ############################
@@ -218,10 +262,9 @@ if [ ! -f sam_vit_b_01ec64.pth ]; then
     --continue=true \
     --allow-overwrite=true \
     --auto-file-renaming=false \
-    --show-console-readout=true \
-    --summary-interval=1 \
+    --log-level=error \
     -o sam_vit_b_01ec64.pth \
-    https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth
+    https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth > /dev/null 2>&1
   echo "✓ SAM model downloaded"
 else
   echo "✓ SAM model already exists"
