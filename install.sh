@@ -2,50 +2,6 @@
 set -e
 
 ############################
-# System dependencies
-############################
-echo "=== System dependencies ==="
-apt update
-apt install -y git wget aria2 ffmpeg python3-venv curl
-
-############################
-# ComfyUI core
-############################
-echo "=== ComfyUI ==="
-cd /workspace
-
-if [ ! -d ComfyUI ]; then
-  git clone https://github.com/comfyanonymous/ComfyUI.git
-fi
-
-cd ComfyUI
-
-python3 -m venv venv
-source venv/bin/activate
-pip install --upgrade pip
-
-pip install torch torchvision torchaudio \
-  --index-url https://download.pytorch.org/whl/cu121
-
-pip install -r requirements.txt
-
-############################
-# Bootstrap repo
-############################
-echo "=== Pull bootstrap data ==="
-cd /workspace
-
-if [ ! -d bootstrap ]; then
-  git clone https://github.com/chremmler777/comfy-bootstrap.git bootstrap
-else
-  cd bootstrap
-  git pull
-fi
-
-# Apply fix for extra_config.py YAML parsing
-cp /workspace/bootstrap/extra_config.py /workspace/ComfyUI/utils/extra_config.py
-
-############################
 # Model Selection Menu (at startup - before any downloads)
 ############################
 echo ""
@@ -124,6 +80,50 @@ else
   echo "✓ Downloading:$DOWNLOAD_LIST"
 fi
 echo ""
+
+############################
+# System dependencies
+############################
+echo "=== System dependencies ==="
+apt update
+apt install -y git wget aria2 ffmpeg python3-venv curl
+
+############################
+# ComfyUI core
+############################
+echo "=== ComfyUI ==="
+cd /workspace
+
+if [ ! -d ComfyUI ]; then
+  git clone https://github.com/comfyanonymous/ComfyUI.git
+fi
+
+cd ComfyUI
+
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+
+pip install torch torchvision torchaudio \
+  --index-url https://download.pytorch.org/whl/cu121
+
+pip install -r requirements.txt
+
+############################
+# Bootstrap repo
+############################
+echo "=== Pull bootstrap data ==="
+cd /workspace
+
+if [ ! -d bootstrap ]; then
+  git clone https://github.com/chremmler777/comfy-bootstrap.git bootstrap
+else
+  cd bootstrap
+  git pull
+fi
+
+# Apply fix for extra_config.py YAML parsing
+cp /workspace/bootstrap/extra_config.py /workspace/ComfyUI/utils/extra_config.py
 
 ############################
 # Skip URL validation - aria2c will handle errors
