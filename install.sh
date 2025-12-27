@@ -181,13 +181,12 @@ while read -r folder url filename; do
     fname="$filename"
   fi
 
+  echo "Downloading $fname → $folder"
   mkdir -p "$folder"
 
-  # Use aria2c for all downloads with auth headers for Civitai
+  # Add Civitai token if downloading from civitai.com and token is set
   DOWNLOAD_HEADERS=("${ARIA_HDR[@]}")
-
-  # Add Civitai token if URL is from Civitai and token exists
-  if [[ "$url" =~ civitai.com && -n "${CIVITAI_TOKEN:-}" ]]; then
+  if [[ "$url" =~ civitai.com ]] && [ -n "${CIVITAI_TOKEN:-}" ]; then
     DOWNLOAD_HEADERS+=(--header="Authorization: Bearer ${CIVITAI_TOKEN}")
   fi
 
@@ -195,41 +194,11 @@ while read -r folder url filename; do
     --continue=true \
     --allow-overwrite=true \
     --auto-file-renaming=false \
-    --log-level=error \
     -d "$folder" \
     -o "$fname" \
-    "$url" > /dev/null 2>&1 &
+    "$url"
 
 done < "$MODELS_FILE"
-
-# Wait for downloads with continuous status output
-echo "Downloading models..."
-DOWNLOAD_START=$(date +%s)
-
-while sleep 2; do
-  ACTIVE=$(jobs -r 2>/dev/null | wc -l)
-
-  CURRENT_TIME=$(date +%s)
-  ELAPSED=$((CURRENT_TIME - DOWNLOAD_START))
-
-  # Get total downloaded bytes
-  TOTAL_BYTES=$(du -sb /workspace/ComfyUI/models 2>/dev/null | awk '{print $1}')
-  TOTAL_GB=$(echo "scale=1; $TOTAL_BYTES / 1073741824" | awk '{print int($1*10)/10}')
-
-  if [ $ELAPSED -gt 0 ] && [ "$TOTAL_BYTES" -gt 0 ]; then
-    SPEED_MB=$((TOTAL_BYTES / (ELAPSED * 1048576)))
-  else
-    SPEED_MB="0"
-  fi
-
-  printf "[%s] Status: %d active jobs | Speed: %d MB/s | Downloaded: %.1f GB\n" "$(date +%H:%M:%S)" "$ACTIVE" "$SPEED_MB" "$TOTAL_GB"
-
-  if [ $ACTIVE -eq 0 ]; then
-    break
-  fi
-done
-
-wait
 
 echo ""
 echo "✓ All models downloaded"
