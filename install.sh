@@ -184,19 +184,24 @@ while read -r folder url filename; do
   echo "Downloading $fname → $folder"
   mkdir -p "$folder"
 
-  # Add Civitai token if downloading from civitai.com and token is set
-  DOWNLOAD_HEADERS=("${ARIA_HDR[@]}")
-  if [[ "$url" =~ civitai.com ]] && [ -n "${CIVITAI_TOKEN:-}" ]; then
-    DOWNLOAD_HEADERS+=(--header="Authorization: Bearer ${CIVITAI_TOKEN}")
+  # Use curl for Civitai downloads to handle redirects with auth headers
+  if [[ "$url" =~ civitai.com ]]; then
+    curl -L -C - \
+      -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" \
+      ${CIVITAI_TOKEN:+-H "Authorization: Bearer ${CIVITAI_TOKEN}"} \
+      -o "$folder/$fname" \
+      "$url"
+  else
+    # Use aria2c for other sources (faster with parallel connections)
+    DOWNLOAD_HEADERS=("${ARIA_HDR[@]}")
+    aria2c -x16 -s16 "${DOWNLOAD_HEADERS[@]}" \
+      --continue=true \
+      --allow-overwrite=true \
+      --auto-file-renaming=false \
+      -d "$folder" \
+      -o "$fname" \
+      "$url"
   fi
-
-  aria2c -x16 -s16 "${DOWNLOAD_HEADERS[@]}" \
-    --continue=true \
-    --allow-overwrite=true \
-    --auto-file-renaming=false \
-    -d "$folder" \
-    -o "$fname" \
-    "$url"
 
 done < "$MODELS_FILE"
 
