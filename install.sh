@@ -235,16 +235,22 @@ echo "Downloading models (parallel)..."
 TOTAL_FILES=$(grep -cv '^[[:space:]]*\(#\|$\)' "$MODELS_FILE")
 DOWNLOAD_START=$(date +%s)
 
+# Monitor downloads until all background jobs complete
 while true; do
-  # Count completed files in all model directories
+  # Count completed files
   COMPLETED=$(find /workspace/ComfyUI/models -type f -newer /tmp/models_selected.txt 2>/dev/null | wc -l)
 
-  if [ $COMPLETED -ge $TOTAL_FILES ]; then
+  # Count active background jobs (download processes)
+  ACTIVE_JOBS=$(jobs -r 2>/dev/null | wc -l)
+
+  # Exit when all jobs are done
+  if [ $ACTIVE_JOBS -eq 0 ] && [ $COMPLETED -ge $TOTAL_FILES ]; then
     break
   fi
 
   # Calculate download progress
   PERCENT=$((COMPLETED * 100 / TOTAL_FILES))
+  [ $PERCENT -gt 100 ] && PERCENT=100
 
   # Get total downloaded bytes
   DOWNLOADED_BYTES=$(du -sb /workspace/ComfyUI/models 2>/dev/null | awk '{print $1}')
@@ -261,9 +267,12 @@ while true; do
     SPEED_MB="0"
   fi
 
-  printf "\r  [%3d%%] %d/%d files | %.1f MB | Speed: %.1f MB/s" $PERCENT $COMPLETED $TOTAL_FILES $DOWNLOADED_MB $SPEED_MB
-  sleep 2
+  printf "\r  [%3d%%] %d/%d files | %.1f MB | Speed: %.1f MB/s | Jobs: %d" $PERCENT $COMPLETED $TOTAL_FILES $DOWNLOADED_MB $SPEED_MB $ACTIVE_JOBS
+  sleep 1
 done
+
+# Final wait to ensure all processes are truly done
+wait 2>/dev/null
 
 echo ""
 echo "✓ All models downloaded"
