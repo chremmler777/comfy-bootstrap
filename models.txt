@@ -25,24 +25,24 @@ loras/waniv https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/
 loras/wan https://civitai.com/api/download/models/2267701?type=Model&format=SafeTensor PenisLora_High.safetensors
 loras/wan https://civitai.com/api/download/models/2267701?type=Model&format=SafeTensor PenisLora_Low.safetensors
 
-# Custom workflow LoRAs
-loras https://huggingface.co/LyliaEngine/spo_sdxl_10ep_4k-data_lora_webui/resolve/main/spo_sdxl_10ep_4k-data_lora_webui.safetensors spo_sdxl_10ep_4k-data_lora_webui.safetensors
-loras https://civitai.com/api/download/models/50847?type=Model&format=SafeTensor qqq-grabbing_from_behind-v2-000006.safetensors
-loras https://huggingface.co/KirtiKousik/New_loras/resolve/085b51891573bb7cd780eae502d2216da04d444c/Penis%20Size_alpha1.0_rank4_noxattn_last.safetensors Penis_Size_alpha1.0_rank4_noxattn_last.safetensors
-loras https://civitai.com/api/download/models/146600?type=Model&format=SafeTensor testicles_slider_IXLR1_alpha16.0_rank32_full_last.safetensors
-loras https://civitai.com/api/download/models/154977?type=Model&format=SafeTensor Realistic_Saggy_Testicles.safetensors
-loras https://civitai.com/api/download/models/235392?type=Model&format=SafeTensor PenisQuiron_illus.safetensors
-loras https://civitai.com/api/download/models/238897?type=Model&format=SafeTensor scarlet-nikke-richy-v1_pdxl.safetensors
-loras https://civitai.com/api/download/models/242639?type=Model&format=SafeTensor longnippls-vp2-000012.safetensors
-loras https://civitai.com/api/download/models/452767?type=Model&format=SafeTensor MS_Breasts_Style_V1_IL.safetensors
-loras https://civitai.com/api/download/models/584853?type=Model&format=SafeTensor Breast_Size_Slider_Illustrious_V2.safetensors
-loras https://civitai.com/api/download/models/482470?type=Model&format=PickleTensor cinematic_photography_detailed_illu_xl.safetensors
-loras https://civitai.com/api/download/models/1681903?type=Model&format=SafeTensor ILXL_Realism_Slider_V.1.safetensors
-loras https://civitai.com/api/download/models/1253047?type=Model&format=SafeTensor zy_illustrious_Realism_Enhancer_v1.safetensors
-loras https://civitai.com/api/download/models/717403?type=Model&format=SafeTensor zy_AmateurStyle_v2.safetensors
-loras https://civitai.com/api/download/models/1535516?type=Model&format=SafeTensor HugeFlaccid.safetensors
-loras https://civitai.com/api/download/models/2189213?type=Model&format=SafeTensor StandingSex.safetensors
-loras https://civitai.com/api/download/models/229775?type=Model&format=SafeTensor Futa_POV_taker.safetensors
+# SDXL LoRAs
+loras/sd https://huggingface.co/LyliaEngine/spo_sdxl_10ep_4k-data_lora_webui/resolve/main/spo_sdxl_10ep_4k-data_lora_webui.safetensors spo_sdxl_10ep_4k-data_lora_webui.safetensors
+loras/sd https://civitai.com/api/download/models/50847?type=Model&format=SafeTensor qqq-grabbing_from_behind-v2-000006.safetensors
+loras/sd https://huggingface.co/KirtiKousik/New_loras/resolve/085b51891573bb7cd780eae502d2216da04d444c/Penis%20Size_alpha1.0_rank4_noxattn_last.safetensors Penis_Size_alpha1.0_rank4_noxattn_last.safetensors
+loras/sd https://civitai.com/api/download/models/146600?type=Model&format=SafeTensor testicles_slider_IXLR1_alpha16.0_rank32_full_last.safetensors
+loras/sd https://civitai.com/api/download/models/154977?type=Model&format=SafeTensor Realistic_Saggy_Testicles.safetensors
+loras/sd https://civitai.com/api/download/models/235392?type=Model&format=SafeTensor PenisQuiron_illus.safetensors
+loras/sd https://civitai.com/api/download/models/238897?type=Model&format=SafeTensor scarlet-nikke-richy-v1_pdxl.safetensors
+loras/sd https://civitai.com/api/download/models/242639?type=Model&format=SafeTensor longnippls-vp2-000012.safetensors
+loras/sd https://civitai.com/api/download/models/452767?type=Model&format=SafeTensor MS_Breasts_Style_V1_IL.safetensors
+loras/sd https://civitai.com/api/download/models/584853?type=Model&format=SafeTensor Breast_Size_Slider_Illustrious_V2.safetensors
+loras/sd https://civitai.com/api/download/models/482470?type=Model&format=PickleTensor cinematic_photography_detailed_illu_xl.safetensors
+loras/sd https://civitai.com/api/download/models/1681903?type=Model&format=SafeTensor ILXL_Realism_Slider_V.1.safetensors
+loras/sd https://civitai.com/api/download/models/1253047?type=Model&format=SafeTensor zy_illustrious_Realism_Enhancer_v1.safetensors
+loras/sd https://civitai.com/api/download/models/717403?type=Model&format=SafeTensor zy_AmateurStyle_v2.safetensors
+loras/sd https://civitai.com/api/download/models/1535516?type=Model&format=SafeTensor HugeFlaccid.safetensors
+loras/sd https://civitai.com/api/download/models/2189213?type=Model&format=SafeTensor StandingSex.safetensors
+loras/sd https://civitai.com/api/download/models/229775?type=Model&format=SafeTensor Futa_POV_taker.safetensors
 
 # vae
 vae https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors wan_2.1_vae.safetensors
