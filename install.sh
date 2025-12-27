@@ -46,7 +46,7 @@ fi
 cp /workspace/bootstrap/extra_config.py /workspace/ComfyUI/utils/extra_config.py
 
 ############################
-# Model Selection Menu
+# Model Selection Menu (at startup - before any downloads)
 ############################
 echo ""
 echo "╔════════════════════════════════════════════════╗"
@@ -54,8 +54,8 @@ echo "║         Model Selection Menu                   ║"
 echo "╚════════════════════════════════════════════════╝"
 echo ""
 echo "Which model packages would you like to download?"
-echo "  1) WAN 2.2 Text-to-Video (remix models)"
-echo "  2) WAN 2.2 Image-to-Video (TV models)"
+echo "  1) WAN 2.2 Text-to-Video (remix models + T2V LoRAs)"
+echo "  2) WAN 2.2 Image-to-Video (TV models + IV LoRAs)"
 echo "  3) SDXL Workflow (illustrij, lustify, nova, xxxray)"
 echo ""
 echo "Select multiple options separated by spaces (e.g., '1 3' for WAN T2V + SDXL)"
@@ -94,18 +94,20 @@ done
 
 # Filter models based on selections
 if [ $INCLUDE_WAN_REMIX -eq 0 ]; then
-  # Remove remix models
+  # Remove remix models and T2V LoRAs
   sed -i '/remix/d' "$MODELS_FILE"
+  sed -i '/loras\/wantv/d' "$MODELS_FILE"
 fi
 
 if [ $INCLUDE_WAN_TV -eq 0 ]; then
-  # Remove TV models
+  # Remove TV models and IV LoRAs
   sed -i '/WAN22_TV/d' "$MODELS_FILE"
+  sed -i '/loras\/waniv/d' "$MODELS_FILE"
 fi
 
-# Remove WAN LoRAs only if NO WAN options selected
+# Remove WAN general LoRAs only if NO WAN options selected
 if [ $INCLUDE_WAN_REMIX -eq 0 ] && [ $INCLUDE_WAN_TV -eq 0 ]; then
-  sed -i '/loras\/wan/d' "$MODELS_FILE"
+  sed -i '/loras\/wan\//d' "$MODELS_FILE"
 fi
 
 if [ $INCLUDE_SDXL -eq 0 ]; then

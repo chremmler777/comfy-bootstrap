@@ -13,13 +13,17 @@ checkpoints https://civitai.com/api/download/models/1305584?type=Model&format=Sa
 checkpoints https://huggingface.co/BusterBoo99xX/novaAsianXL_illustriousV50/resolve/main/novaAsianXL_illustriousV50.safetensors novaAsianXL_illustriousV50.safetensors
 
 # loras
-# WAN LoRAs
+# WAN T2V LoRAs (Text-to-Video)
+loras/wantv https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_t2v_lightx2v_4steps_lora_v1.1_high_noise.safetensors wan2.2_t2v_lightx2v_4steps_lora_v1.1_high_noise.safetensors
+loras/wantv https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_t2v_lightx2v_4steps_lora_v1.1_low_noise.safetensors wan2.2_t2v_lightx2v_4steps_lora_v1.1_low_noise.safetensors
+
+# WAN IV LoRAs (Image-to-Video)
+loras/waniv https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors
+loras/waniv https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors
+
+# WAN General LoRAs (compatible with both T2V and IV)
 loras/wan https://civitai.com/api/download/models/2267701?type=Model&format=SafeTensor PenisLora_High.safetensors
 loras/wan https://civitai.com/api/download/models/2267701?type=Model&format=SafeTensor PenisLora_Low.safetensors
-
-# WAN Animation LoRAs
-loras https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors
-loras https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors
 
 # Custom workflow LoRAs
 loras https://huggingface.co/LyliaEngine/spo_sdxl_10ep_4k-data_lora_webui/resolve/main/spo_sdxl_10ep_4k-data_lora_webui.safetensors spo_sdxl_10ep_4k-data_lora_webui.safetensors
