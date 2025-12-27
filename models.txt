@@ -39,7 +39,6 @@ loras https://civitai.com/api/download/models/717403?type=Model&format=SafeTenso
 loras https://civitai.com/api/download/models/1535516?type=Model&format=SafeTensor HugeFlaccid.safetensors
 loras https://civitai.com/api/download/models/2189213?type=Model&format=SafeTensor StandingSex.safetensors
 loras https://civitai.com/api/download/models/229775?type=Model&format=SafeTensor Futa_POV_taker.safetensors
-loras https://civitai.com/api/download/models/2464303?type=Model&format=SafeTensor Wan22_Casring_Spoon.safetensors
 
 # vae
 vae https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors wan_2.1_vae.safetensors
