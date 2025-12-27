@@ -218,8 +218,7 @@ while true; do
   TOTAL_BYTES=$(du -sb /workspace/ComfyUI/models 2>/dev/null | awk '{print $1}')
 
   if [ $ELAPSED -gt 0 ] && [ "$TOTAL_BYTES" -gt 0 ]; then
-    SPEED_BYTES=$((TOTAL_BYTES / ELAPSED))
-    SPEED_MB=$(echo "scale=1; $SPEED_BYTES / 1048576" | bc 2>/dev/null || echo "0")
+    SPEED_MB=$((TOTAL_BYTES / (ELAPSED * 1048576)))
   else
     SPEED_MB="0"
   fi
