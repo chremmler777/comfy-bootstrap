@@ -82,7 +82,7 @@ fi
 
 if [ $INCLUDE_SDXL -eq 0 ]; then
   # Remove SDXL checkpoint models and LoRAs
-  sed -i '/illustrij_v19\|lustifySDXLNSFW_endgame\|novaAsianXL\|divingIllustriousReal_v50VAE/d' "$MODELS_FILE"
+  sed -i '/illustrij_v19\|lustifySDXLNSFW_endgame\|novaAsianXL\|xxxRay_v11\|divingIllustriousReal_v50VAE/d' "$MODELS_FILE"
   sed -i '/loras\/sd/d' "$MODELS_FILE"
 fi
 
