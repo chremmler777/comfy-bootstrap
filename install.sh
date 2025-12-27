@@ -181,71 +181,55 @@ while read -r folder url filename; do
     fname="$filename"
   fi
 
-  echo "Downloading $fname → $folder"
   mkdir -p "$folder"
 
-  # Use curl for Civitai downloads to handle redirects with auth headers (sequential - avoids rate limiting)
-  if [[ "$url" =~ civitai.com ]]; then
-    echo "Downloading $fname → $folder (using curl with Civitai auth - parallel)"
+  # Use aria2c for all downloads with auth headers for Civitai
+  DOWNLOAD_HEADERS=("${ARIA_HDR[@]}")
 
-    # Retry logic for Civitai downloads (run in background for parallel processing)
-    (
-      RETRY_COUNT=0
-      MAX_RETRIES=3
-
-      while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-        curl -s -L -C - \
-          -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" \
-          ${CIVITAI_TOKEN:+-H "Authorization: Bearer ${CIVITAI_TOKEN}"} \
-          -o "$folder/$fname" \
-          "$url"
-
-        # Check if file is corrupted (< 500KB is likely HTML error page)
-        if [ -f "$folder/$fname" ]; then
-          FILE_SIZE=$(stat -f%z "$folder/$fname" 2>/dev/null || stat -c%s "$folder/$fname" 2>/dev/null)
-          if [ "$FILE_SIZE" -lt 500000 ]; then
-            echo "⚠️  Downloaded file too small ($FILE_SIZE bytes) - likely corrupted. Retrying..."
-            rm "$folder/$fname"
-            RETRY_COUNT=$((RETRY_COUNT + 1))
-            sleep 5
-          else
-            echo "✓ Download successful ($FILE_SIZE bytes)"
-            break
-          fi
-        fi
-      done
-    ) &
-  else
-    # Use aria2c for other sources (faster with parallel connections, run in background)
-    DOWNLOAD_HEADERS=("${ARIA_HDR[@]}")
-    aria2c -x16 -s16 "${DOWNLOAD_HEADERS[@]}" \
-      --continue=true \
-      --allow-overwrite=true \
-      --auto-file-renaming=false \
-      --log-level=error \
-      -d "$folder" \
-      -o "$fname" \
-      "$url" > /dev/null 2>&1 &
+  # Add Civitai token if URL is from Civitai and token exists
+  if [[ "$url" =~ civitai.com && -n "${CIVITAI_TOKEN:-}" ]]; then
+    DOWNLOAD_HEADERS+=(--header="Authorization: Bearer ${CIVITAI_TOKEN}")
   fi
+
+  aria2c -x16 -s16 "${DOWNLOAD_HEADERS[@]}" \
+    --continue=true \
+    --allow-overwrite=true \
+    --auto-file-renaming=false \
+    --log-level=error \
+    -d "$folder" \
+    -o "$fname" \
+    "$url" > /dev/null 2>&1 &
 
 done < "$MODELS_FILE"
 
-# Wait for all background downloads to complete with progress indicator
-echo "Downloading models (parallel)..."
-TOTAL_FILES=$(grep -cv '^[[:space:]]*\(#\|$\)' "$MODELS_FILE")
-DOWNLOAD_COUNT=0
+# Wait for downloads with continuous status output
+echo "Downloading models..."
+DOWNLOAD_START=$(date +%s)
 
-while true; do
-  # Count completed files in all model directories
-  COMPLETED=$(find /workspace/ComfyUI/models -type f -newer /tmp/models_selected.txt 2>/dev/null | wc -l)
+while sleep 2; do
+  ACTIVE=$(jobs -r 2>/dev/null | wc -l)
 
-  if [ $COMPLETED -ge $TOTAL_FILES ]; then
-    break
+  CURRENT_TIME=$(date +%s)
+  ELAPSED=$((CURRENT_TIME - DOWNLOAD_START))
+
+  # Get total downloaded bytes
+  TOTAL_BYTES=$(du -sb /workspace/ComfyUI/models 2>/dev/null | awk '{print $1}')
+  TOTAL_GB=$(echo "scale=1; $TOTAL_BYTES / 1073741824" | awk '{print int($1*10)/10}')
+
+  if [ $ELAPSED -gt 0 ] && [ "$TOTAL_BYTES" -gt 0 ]; then
+    SPEED_MB=$((TOTAL_BYTES / (ELAPSED * 1048576)))
+  else
+    SPEED_MB="0"
   fi
 
-  printf "\r  Progress: %d/%d files downloaded" $COMPLETED $TOTAL_FILES
-  sleep 2
+  printf "[%s] Status: %d active jobs | Speed: %d MB/s | Downloaded: %.1f GB\n" "$(date +%H:%M:%S)" "$ACTIVE" "$SPEED_MB" "$TOTAL_GB"
+
+  if [ $ACTIVE -eq 0 ]; then
+    break
+  fi
 done
+
+wait
 
 echo ""
 echo "✓ All models downloaded"
