@@ -184,15 +184,17 @@ while read -r folder url filename; do
   echo "Downloading $fname → $folder"
   mkdir -p "$folder"
 
-  # Use curl for Civitai downloads to handle redirects with auth headers
+  # Use curl for Civitai downloads to handle redirects with auth headers (run in background)
   if [[ "$url" =~ civitai.com ]]; then
-    curl -L -C - \
-      -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" \
-      ${CIVITAI_TOKEN:+-H "Authorization: Bearer ${CIVITAI_TOKEN}"} \
-      -o "$folder/$fname" \
-      "$url"
+    (
+      curl -L -C - \
+        -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" \
+        ${CIVITAI_TOKEN:+-H "Authorization: Bearer ${CIVITAI_TOKEN}"} \
+        -o "$folder/$fname" \
+        "$url"
+    ) &
   else
-    # Use aria2c for other sources (faster with parallel connections)
+    # Use aria2c for other sources (faster with parallel connections, run in background)
     DOWNLOAD_HEADERS=("${ARIA_HDR[@]}")
     aria2c -x16 -s16 "${DOWNLOAD_HEADERS[@]}" \
       --continue=true \
@@ -200,10 +202,13 @@ while read -r folder url filename; do
       --auto-file-renaming=false \
       -d "$folder" \
       -o "$fname" \
-      "$url"
+      "$url" &
   fi
 
 done < "$MODELS_FILE"
+
+# Wait for all background downloads to complete
+wait
 
 echo ""
 echo "✓ All models downloaded"
