@@ -201,7 +201,6 @@ while read -r folder url filename; do
 done < "$MODELS_FILE"
 
 # Monitor downloads with clean single-line progress
-echo "Downloading models (parallel)..."
 TOTAL_FILES=$(grep -cv '^[[:space:]]*\(#\|$\)' "$MODELS_FILE")
 DOWNLOAD_START=$(date +%s)
 
@@ -230,7 +229,6 @@ while true; do
 
     if [ "$SPEED_BYTES" -gt 0 ]; then
       REMAINING_FILES=$((TOTAL_FILES - COMPLETED))
-      # Rough estimate: assume remaining files average size of completed ones
       AVG_FILE_SIZE=$((DOWNLOADED_BYTES / (COMPLETED + 1)))
       REMAINING_BYTES=$((REMAINING_FILES * AVG_FILE_SIZE))
       ETA=$((REMAINING_BYTES / SPEED_BYTES))
@@ -242,13 +240,12 @@ while true; do
     ETA=0
   fi
 
-  printf "\r[%3d%%] Speed: %s MB/s | ETA: %ds | %d/%d files" $PERCENT "$SPEED_MB" $ETA $COMPLETED $TOTAL_FILES
+  printf "[%3d%%] Speed: %s MB/s | ETA: %ds | %d/%d files\n" $PERCENT "$SPEED_MB" $ETA $COMPLETED $TOTAL_FILES
   sleep 1
 done
 
 wait
 
-echo ""
 echo "✓ All models downloaded"
 
 ############################
