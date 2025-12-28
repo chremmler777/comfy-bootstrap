@@ -5,10 +5,6 @@ diffusion_models/wan https://civitai.com/api/download/models/2424912?type=Model&
 # WAN 2.2 T2V 14B Models
 diffusion_models/wantv https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/diffusion_models/wan2.2_t2v_low_noise_14B_fp8_scaled.safetensors wan2.2_t2v_low_noise_14B_fp8_scaled.safetensors
 diffusion_models/wantv https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/diffusion_models/wan2.2_t2v_high_noise_14B_fp8_scaled.safetensors wan2.2_t2v_high_noise_14B_fp8_scaled.safetensors
-diffusion_models/wantv https://civitai.com/api/download/models/2477539?type=Model&format=SafeTensor&size=full&fp=fp8 WAN_TV_Enhanced_NSFW_Camera_High.safetensors
-diffusion_models/wantv https://civitai.com/api/download/models/2477548?type=Model&format=SafeTensor&size=full&fp=fp8 WAN_TV_Enhanced_NSFW_Camera_Low.safetensors
-diffusion_models/wantv https://civitai.com/api/download/models/2471483?type=Model&format=SafeTensor Wan_TV_Doggystyle_High.safetensors
-diffusion_models/wantv https://civitai.com/api/download/models/2471486?type=Model&format=SafeTensor Wan_TV_Doggystyle_Low.safetensors
 
 # SDXL Checkpoints
 checkpoints https://civitai.com/api/download/models/2427287?type=Model&format=SafeTensor&size=full&fp=fp16 illustrij_v19.safetensors
@@ -29,6 +25,8 @@ loras/wantv https://civitai.com/api/download/models/2274776 INGREDIENTS.zip
 loras/wantv https://civitai.com/api/download/models/2394143 SS_LORA_WAN2.2_T2V_DYN_A3.zip
 loras/wantv https://civitai.com/api/download/models/2524170?type=Model&format=SafeTensor Fitness_Models_High.safetensors
 loras/wantv https://civitai.com/api/download/models/2524177?type=Model&format=SafeTensor Fitness_Models_Low.safetensors
+loras/wantv https://civitai.com/api/download/models/2471483?type=Model&format=SafeTensor Wan_TV_Doggystyle_High.safetensors
+loras/wantv https://civitai.com/api/download/models/2471486?type=Model&format=SafeTensor Wan_TV_Doggystyle_Low.safetensors
 
 # WAN IV LoRAs (Image-to-Video)
 loras/waniv https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors
@@ -39,6 +37,8 @@ loras/wan https://civitai.com/api/download/models/2267701?type=Model&format=Safe
 loras/wan https://civitai.com/api/download/models/2267701?type=Model&format=SafeTensor PenisLora_Low.safetensors
 loras/wan https://civitai.com/api/download/models/2282761?type=Model&format=SafeTensor Braless_High.safetensors
 loras/wan https://civitai.com/api/download/models/2282767?type=Model&format=SafeTensor Braless_Low.safetensors
+loras/wan https://civitai.com/api/download/models/2265946?type=Model&format=SafeTensor Wan_BottomTS_High.safetensors
+loras/wan https://civitai.com/api/download/models/2266454?type=Model&format=SafeTensor Wan_BottomTS_Low.safetensors
 
 # SDXL LoRAs
 loras/sd https://huggingface.co/LyliaEngine/spo_sdxl_10ep_4k-data_lora_webui/resolve/main/spo_sdxl_10ep_4k-data_lora_webui.safetensors spo_sdxl_10ep_4k-data_lora_webui.safetensors
