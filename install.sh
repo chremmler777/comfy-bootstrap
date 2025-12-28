@@ -232,8 +232,9 @@ echo "Downloading $TOTAL_FILES models..."
 echo ""
 
 # Initialize for speed calculation
-LAST_BYTES=0
+LAST_BYTES=$(du -sb /workspace/ComfyUI/models 2>/dev/null | cut -f1 || echo 0)
 LAST_TIME=$(date +%s)
+SPEED_MBPS="--"
 
 while true; do
   # Count remaining downloads
@@ -247,18 +248,16 @@ while true; do
   done
 
   # Calculate download speed (total bytes in models folder)
-  CURRENT_BYTES=$(du -sb . 2>/dev/null | cut -f1)
+  CURRENT_BYTES=$(du -sb /workspace/ComfyUI/models 2>/dev/null | cut -f1 || echo 0)
   CURRENT_TIME=$(date +%s)
   TIME_DIFF=$((CURRENT_TIME - LAST_TIME))
 
-  if [ $TIME_DIFF -gt 0 ]; then
+  if [ $TIME_DIFF -gt 0 ] && [ "$CURRENT_BYTES" -gt "$LAST_BYTES" ]; then
     BYTES_DIFF=$((CURRENT_BYTES - LAST_BYTES))
     SPEED_BPS=$((BYTES_DIFF / TIME_DIFF))
-    SPEED_MBPS=$(echo "scale=1; $SPEED_BPS / 1048576" | bc 2>/dev/null || echo "0")
+    SPEED_MBPS=$(awk "BEGIN {printf \"%.1f\", $SPEED_BPS / 1048576}")
     LAST_BYTES=$CURRENT_BYTES
     LAST_TIME=$CURRENT_TIME
-  else
-    SPEED_MBPS="..."
   fi
 
   # Show status
@@ -294,15 +293,16 @@ else
   echo "✓ SAM model already exists"
 fi
 
+MODELS_DIR="/workspace/ComfyUI/models"
 echo "Model inventory:"
-echo "  checkpoints:      $(ls checkpoints 2>/dev/null | wc -l)"
-echo "  diffusion_models: $(ls diffusion_models 2>/dev/null | wc -l)"
-echo "  loras:            $(ls loras 2>/dev/null | wc -l)"
-echo "  text_encoders:    $(ls text_encoders 2>/dev/null | wc -l)"
-echo "  vae:              $(ls vae 2>/dev/null | wc -l)"
-echo "  sams:             $(ls sams 2>/dev/null | wc -l)"
-echo "  ultralytics/bbox: $(ls ultralytics/bbox 2>/dev/null | wc -l)"
-echo "  upscale_models:   $(ls upscale_models 2>/dev/null | wc -l)"
+echo "  checkpoints:      $(find $MODELS_DIR/checkpoints -type f 2>/dev/null | wc -l)"
+echo "  diffusion_models: $(find $MODELS_DIR/diffusion_models -type f 2>/dev/null | wc -l)"
+echo "  loras:            $(find $MODELS_DIR/loras -type f 2>/dev/null | wc -l)"
+echo "  text_encoders:    $(find $MODELS_DIR/text_encoders -type f 2>/dev/null | wc -l)"
+echo "  vae:              $(find $MODELS_DIR/vae -type f 2>/dev/null | wc -l)"
+echo "  sams:             $(find $MODELS_DIR/sams -type f 2>/dev/null | wc -l)"
+echo "  ultralytics/bbox: $(find $MODELS_DIR/ultralytics/bbox -type f 2>/dev/null | wc -l)"
+echo "  upscale_models:   $(find $MODELS_DIR/upscale_models -type f 2>/dev/null | wc -l)"
 
 ############################
 # Python deps for custom nodes
