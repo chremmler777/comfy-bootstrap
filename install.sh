@@ -176,11 +176,6 @@ TRACK_DIR="/tmp/model_downloads"
 rm -rf "$TRACK_DIR"
 mkdir -p "$TRACK_DIR"
 
-# Color codes
-BLUE='\033[0;34m'
-GREEN='\033[0;32m'
-NC='\033[0m' # No Color
-
 # Count total files
 TOTAL_FILES=$(grep -cv '^[[:space:]]*\(#\|$\)' "$MODELS_FILE")
 
@@ -195,9 +190,9 @@ while read -r folder url filename; do
     fname="$filename"
   fi
 
-  # Create tracking marker file
+  # Create tracking marker file with model name inside
   TRACK_ID="${folder//\//_}__${fname//\//_}"
-  touch "$TRACK_DIR/$TRACK_ID"
+  echo "$fname" > "$TRACK_DIR/$TRACK_ID"
 
   mkdir -p "$folder"
 
@@ -209,7 +204,7 @@ while read -r folder url filename; do
         ${CIVITAI_TOKEN:+-H "Authorization: Bearer ${CIVITAI_TOKEN}"} \
         -o "$folder/$fname" \
         "$url" 2>/dev/null
-      rm "$TRACK_DIR/$TRACK_ID"
+      rm -f "$TRACK_DIR/$TRACK_ID"
     ) &
   else
     # Use aria2c for other sources (faster with parallel connections, run in background)
@@ -222,35 +217,54 @@ while read -r folder url filename; do
         -d "$folder" \
         -o "$fname" \
         "$url" >/dev/null 2>&1
-      rm "$TRACK_DIR/$TRACK_ID"
+      rm -f "$TRACK_DIR/$TRACK_ID"
     ) &
   fi
 
 done < "$MODELS_FILE"
 
-# Show live download status
+# Show live download status with speed
 echo "Downloading $TOTAL_FILES models..."
 echo ""
 
-# Track last shown count to avoid spam
-LAST_COMPLETED=-1
+# Initialize for speed calculation
+LAST_BYTES=0
+LAST_TIME=$(date +%s)
 
 while true; do
   # Count remaining downloads
   REMAINING=$(find "$TRACK_DIR" -type f 2>/dev/null | wc -l)
   COMPLETED=$((TOTAL_FILES - REMAINING))
 
-  # Only show update if progress changed
-  if [ $COMPLETED -ne $LAST_COMPLETED ]; then
-    echo "Progress: $COMPLETED/$TOTAL_FILES completed"
-    LAST_COMPLETED=$COMPLETED
+  # Get current models being downloaded
+  CURRENT_MODELS=""
+  for f in "$TRACK_DIR"/*; do
+    [ -f "$f" ] && CURRENT_MODELS+="$(cat "$f") "
+  done
+
+  # Calculate download speed (total bytes in models folder)
+  CURRENT_BYTES=$(du -sb . 2>/dev/null | cut -f1)
+  CURRENT_TIME=$(date +%s)
+  TIME_DIFF=$((CURRENT_TIME - LAST_TIME))
+
+  if [ $TIME_DIFF -gt 0 ]; then
+    BYTES_DIFF=$((CURRENT_BYTES - LAST_BYTES))
+    SPEED_BPS=$((BYTES_DIFF / TIME_DIFF))
+    SPEED_MBPS=$(echo "scale=1; $SPEED_BPS / 1048576" | bc 2>/dev/null || echo "0")
+    LAST_BYTES=$CURRENT_BYTES
+    LAST_TIME=$CURRENT_TIME
+  else
+    SPEED_MBPS="..."
   fi
+
+  # Show status
+  echo "[$COMPLETED/$TOTAL_FILES] ${SPEED_MBPS} MB/s | ${CURRENT_MODELS:0:60}"
 
   if [ $REMAINING -eq 0 ]; then
     break
   fi
 
-  sleep 2
+  sleep 3
 done
 
 # Kill any remaining aria2c or curl processes
