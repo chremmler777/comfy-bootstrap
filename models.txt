@@ -2,14 +2,13 @@
 # WAN 2.2 Models
 diffusion_models/wan https://civitai.com/api/download/models/2424167?type=Model&format=SafeTensor&size=pruned&fp=fp8 WAN22_TV_High.safetensors
 diffusion_models/wan https://civitai.com/api/download/models/2424912?type=Model&format=SafeTensor&size=pruned&fp=fp8 WAN22_TV_Low.safetensors
-diffusion_models/wan https://civitai.com/api/download/models/2477539?type=Model&format=SafeTensor&size=full&fp=fp8 WAN_TV_Enhanced_NSFW_Camera_High.safetensors
-diffusion_models/wan https://civitai.com/api/download/models/2477548?type=Model&format=SafeTensor&size=full&fp=fp8 WAN_TV_Enhanced_NSFW_Camera_Low.safetensors
-diffusion_models/wan https://civitai.com/api/download/models/2471483?type=Model&format=SafeTensor Wan_TV_Doggystyle_High.safetensors
-diffusion_models/wan https://civitai.com/api/download/models/2471486?type=Model&format=SafeTensor Wan_TV_Doggystyle_Low.safetensors
-
 # WAN 2.2 T2V 14B Models
 diffusion_models/wantv https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/diffusion_models/wan2.2_t2v_low_noise_14B_fp8_scaled.safetensors wan2.2_t2v_low_noise_14B_fp8_scaled.safetensors
 diffusion_models/wantv https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/diffusion_models/wan2.2_t2v_high_noise_14B_fp8_scaled.safetensors wan2.2_t2v_high_noise_14B_fp8_scaled.safetensors
+diffusion_models/wantv https://civitai.com/api/download/models/2477539?type=Model&format=SafeTensor&size=full&fp=fp8 WAN_TV_Enhanced_NSFW_Camera_High.safetensors
+diffusion_models/wantv https://civitai.com/api/download/models/2477548?type=Model&format=SafeTensor&size=full&fp=fp8 WAN_TV_Enhanced_NSFW_Camera_Low.safetensors
+diffusion_models/wantv https://civitai.com/api/download/models/2471483?type=Model&format=SafeTensor Wan_TV_Doggystyle_High.safetensors
+diffusion_models/wantv https://civitai.com/api/download/models/2471486?type=Model&format=SafeTensor Wan_TV_Doggystyle_Low.safetensors
 
 # SDXL Checkpoints
 checkpoints https://civitai.com/api/download/models/2427287?type=Model&format=SafeTensor&size=full&fp=fp16 illustrij_v19.safetensors
