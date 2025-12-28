@@ -79,14 +79,15 @@ done
 
 # Filter models based on selections
 if [ $INCLUDE_WAN_REMIX -eq 0 ]; then
-  # Remove remix models and T2V LoRAs
+  # Remove T2V models and T2V LoRAs
   sed -i '/remix/d' "$MODELS_FILE"
+  sed -i '/diffusion_models\/wantv/d' "$MODELS_FILE"
   sed -i '/loras\/wantv/d' "$MODELS_FILE"
 fi
 
 if [ $INCLUDE_WAN_TV -eq 0 ]; then
-  # Remove TV models and IV LoRAs
-  sed -i '/WAN22_TV/d' "$MODELS_FILE"
+  # Remove I2V models and IV LoRAs
+  sed -i '/diffusion_models\/waniv/d' "$MODELS_FILE"
   sed -i '/loras\/waniv/d' "$MODELS_FILE"
 fi
 
@@ -241,10 +242,10 @@ while true; do
   REMAINING=$(find "$TRACK_DIR" -type f 2>/dev/null | wc -l)
   COMPLETED=$((TOTAL_FILES - REMAINING))
 
-  # Get current models being downloaded
+  # Get current models being downloaded (suppress errors from race condition)
   CURRENT_MODELS=""
   for f in "$TRACK_DIR"/*; do
-    [ -f "$f" ] && CURRENT_MODELS+="$(cat "$f") "
+    [ -f "$f" ] && CURRENT_MODELS+="$(cat "$f" 2>/dev/null || true) "
   done
 
   # Calculate download speed (total bytes in models folder)
