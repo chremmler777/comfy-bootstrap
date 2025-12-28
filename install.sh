@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Ignore terminal hangup - script continues if terminal closes
+trap '' HUP
+
 ############################
 # Setup logging to file and terminal
 ############################
@@ -10,6 +13,7 @@ exec &> >(tee -a "$LOG_FILE")
 echo "=== Installation Log ==="
 echo "Log file: $LOG_FILE"
 echo "Start time: $(date)"
+echo "Script will continue if terminal closes. Check log: tail -f $LOG_FILE"
 echo ""
 
 ############################
