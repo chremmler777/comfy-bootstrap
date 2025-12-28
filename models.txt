@@ -2,8 +2,6 @@
 # WAN 2.2 Models
 diffusion_models/wan https://civitai.com/api/download/models/2424167?type=Model&format=SafeTensor&size=pruned&fp=fp8 WAN22_TV_High.safetensors
 diffusion_models/wan https://civitai.com/api/download/models/2424912?type=Model&format=SafeTensor&size=pruned&fp=fp8 WAN22_TV_Low.safetensors
-diffusion_models/wan https://civitai.com/api/download/models/2540892?type=Model&format=GGUF&size=full&fp=fp8 WAN_Enhanced_NSFW_High.gguf
-diffusion_models/wan https://civitai.com/api/download/models/2540896?type=Model&format=GGUF&size=full&fp=fp8 WAN_Enhanced_NSFW_Low.gguf
 
 # WAN 2.2 T2V 14B Models
 diffusion_models/wantv https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/diffusion_models/wan2.2_t2v_low_noise_14B_fp8_scaled.safetensors wan2.2_t2v_low_noise_14B_fp8_scaled.safetensors
