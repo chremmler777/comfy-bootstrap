@@ -1,7 +1,5 @@
 # diffusion models
 # WAN 2.2 Models
-diffusion_models/wan https://civitai.com/api/download/models/2381931?type=Model&format=SafeTensor&size=pruned&fp=fp8 Wan22remixhigh.safetensors
-diffusion_models/wan https://civitai.com/api/download/models/2424912?type=Model&format=SafeTensor&size=pruned&fp=fp8 Wan22remixlow.safetensors
 diffusion_models/wan https://civitai.com/api/download/models/2424167?type=Model&format=SafeTensor&size=pruned&fp=fp8 WAN22_TV_High.safetensors
 diffusion_models/wan https://civitai.com/api/download/models/2424912?type=Model&format=SafeTensor&size=pruned&fp=fp8 WAN22_TV_Low.safetensors
 
