@@ -58,6 +58,7 @@ loras/sd https://civitai.com/api/download/models/229775?type=Model&format=SafeTe
 
 # vae
 vae https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors wan_2.1_vae.safetensors
+vae https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/vae/wan2.2_vae.safetensors wan2.2_vae.safetensors
 vae https://huggingface.co/stabilityai/sdxl-vae/resolve/main/sdxl_vae.safetensors sdxl_vae.safetensors
 
 # text encoder (WAN 2.1 repo is correct here)
