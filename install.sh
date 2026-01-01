@@ -86,14 +86,9 @@ if [ $INCLUDE_WAN_REMIX -eq 0 ]; then
 fi
 
 if [ $INCLUDE_WAN_TV -eq 0 ]; then
-  # Remove I2V models and IV LoRAs
+  # Remove I2V models and IV LoRAs (includes general WAN LoRAs now)
   sed -i '/diffusion_models\/waniv/d' "$MODELS_FILE"
   sed -i '/loras\/waniv/d' "$MODELS_FILE"
-fi
-
-# Remove WAN general LoRAs only if NO WAN options selected
-if [ $INCLUDE_WAN_REMIX -eq 0 ] && [ $INCLUDE_WAN_TV -eq 0 ]; then
-  sed -i '/loras\/wan/d' "$MODELS_FILE"
 fi
 
 if [ $INCLUDE_SDXL -eq 0 ]; then
