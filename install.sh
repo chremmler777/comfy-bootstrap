@@ -39,15 +39,14 @@ echo "║         Model Selection Menu                   ║"
 echo "╚════════════════════════════════════════════════╝"
 echo ""
 echo "Which model packages would you like to download?"
-echo "  1) WAN 2.2 Text-to-Video (remix models + T2V LoRAs)"
-echo "  2) WAN 2.2 Image-to-Video (TV models + IV LoRAs)"
-echo "  3) SDXL Workflow (illustrij, lustify, nova, xxxray)"
+echo "  1) WAN 2.2 Image-to-Video (I2V models + LoRAs)"
+echo "  2) SDXL Workflow (illustrij, lustify, nova, xxxray)"
 echo ""
-echo "Select multiple options separated by spaces (e.g., '1 3' for WAN T2V + SDXL)"
-echo "Press Enter for all options [default: 1 2 3]"
+echo "Select multiple options separated by spaces (e.g., '1 2' for both)"
+echo "Press Enter for all options [default: 1 2]"
 echo ""
 read -p "Enter your choices: " MODEL_CHOICES
-MODEL_CHOICES=${MODEL_CHOICES:-1 2 3}
+MODEL_CHOICES=${MODEL_CHOICES:-1 2}
 
 # Create temp models file based on selection
 MODELS_FILE="/tmp/models_selected.txt"
@@ -55,22 +54,17 @@ cp /workspace/bootstrap/models.txt "$MODELS_FILE"
 
 # Track what's being downloaded
 DOWNLOAD_LIST=""
-INCLUDE_WAN_REMIX=0
-INCLUDE_WAN_TV=0
+INCLUDE_WAN_IV=0
 INCLUDE_SDXL=0
 
 # Parse selections
 for choice in $MODEL_CHOICES; do
   case "$choice" in
     1)
-      INCLUDE_WAN_REMIX=1
-      DOWNLOAD_LIST="$DOWNLOAD_LIST WAN-T2V"
-      ;;
-    2)
-      INCLUDE_WAN_TV=1
+      INCLUDE_WAN_IV=1
       DOWNLOAD_LIST="$DOWNLOAD_LIST WAN-IV"
       ;;
-    3)
+    2)
       INCLUDE_SDXL=1
       DOWNLOAD_LIST="$DOWNLOAD_LIST SDXL"
       ;;
@@ -78,15 +72,8 @@ for choice in $MODEL_CHOICES; do
 done
 
 # Filter models based on selections
-if [ $INCLUDE_WAN_REMIX -eq 0 ]; then
-  # Remove T2V models and T2V LoRAs
-  sed -i '/remix/d' "$MODELS_FILE"
-  sed -i '/diffusion_models\/wantv/d' "$MODELS_FILE"
-  sed -i '/loras\/wantv/d' "$MODELS_FILE"
-fi
-
-if [ $INCLUDE_WAN_TV -eq 0 ]; then
-  # Remove I2V models and IV LoRAs (includes general WAN LoRAs now)
+if [ $INCLUDE_WAN_IV -eq 0 ]; then
+  # Remove I2V models and LoRAs
   sed -i '/diffusion_models\/waniv/d' "$MODELS_FILE"
   sed -i '/loras\/waniv/d' "$MODELS_FILE"
 fi
