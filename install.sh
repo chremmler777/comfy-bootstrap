@@ -17,6 +17,36 @@ echo "Script will continue if terminal closes. Check log: tail -f $LOG_FILE"
 echo ""
 
 ############################
+# Check for existing installation (Network Volume)
+############################
+MARKER_FILE="/workspace/.comfy_installed"
+SKIP_DOWNLOADS=0
+
+if [ -f "$MARKER_FILE" ]; then
+  echo "╔════════════════════════════════════════════════╗"
+  echo "║   Existing installation detected!              ║"
+  echo "╚════════════════════════════════════════════════╝"
+  echo ""
+  echo "Models already downloaded (Network Volume)"
+  echo "Last installed: $(cat "$MARKER_FILE")"
+  echo ""
+  echo "Options:"
+  echo "  1) Quick start - skip downloads, just launch ComfyUI"
+  echo "  2) Full reinstall - download everything fresh"
+  echo ""
+  read -p "Enter choice [default: 1]: " INSTALL_CHOICE
+  INSTALL_CHOICE=${INSTALL_CHOICE:-1}
+
+  if [ "$INSTALL_CHOICE" = "1" ]; then
+    SKIP_DOWNLOADS=1
+    echo "✓ Skipping downloads, using existing models"
+  else
+    echo "✓ Full reinstall selected"
+  fi
+  echo ""
+fi
+
+############################
 # Bootstrap repo (clone first for model selection)
 ############################
 echo "=== Pull bootstrap data ==="
@@ -31,22 +61,27 @@ else
 fi
 
 ############################
-# Model Selection Menu (before system dependencies)
+# Model Selection Menu (skip if using existing installation)
 ############################
-echo ""
-echo "╔════════════════════════════════════════════════╗"
-echo "║         Model Selection Menu                   ║"
-echo "╚════════════════════════════════════════════════╝"
-echo ""
-echo "Which model packages would you like to download?"
-echo "  1) WAN 2.2 Image-to-Video (I2V models + LoRAs)"
-echo "  2) SDXL Workflow (illustrij, lustify, nova, xxxray)"
-echo ""
-echo "Select multiple options separated by spaces (e.g., '1 2' for both)"
-echo "Press Enter for all options [default: 1 2]"
-echo ""
-read -p "Enter your choices: " MODEL_CHOICES
-MODEL_CHOICES=${MODEL_CHOICES:-1 2}
+if [ $SKIP_DOWNLOADS -eq 0 ]; then
+  echo ""
+  echo "╔════════════════════════════════════════════════╗"
+  echo "║         Model Selection Menu                   ║"
+  echo "╚════════════════════════════════════════════════╝"
+  echo ""
+  echo "Which model packages would you like to download?"
+  echo "  1) WAN 2.2 Image-to-Video (I2V models + LoRAs)"
+  echo "  2) SDXL Workflow (illustrij, lustify, nova, xxxray)"
+  echo ""
+  echo "Select multiple options separated by spaces (e.g., '1 2' for both)"
+  echo "Press Enter for all options [default: 1 2]"
+  echo ""
+  read -p "Enter your choices: " MODEL_CHOICES
+  MODEL_CHOICES=${MODEL_CHOICES:-1 2}
+else
+  # Default to all for marker file purposes
+  MODEL_CHOICES="1 2"
+fi
 
 # Create temp models file based on selection
 MODELS_FILE="/tmp/models_selected.txt"
@@ -150,118 +185,122 @@ echo "=== Models ==="
 mkdir -p /workspace/ComfyUI/models
 cd /workspace/ComfyUI/models
 
-ARIA_HDR=(
-  --header="User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
-  --header="Accept: */*"
-)
-if [ -n "${HF_TOKEN:-}" ]; then
-  ARIA_HDR+=(--header="Authorization: Bearer ${HF_TOKEN}")
-fi
-
-# Create tracking directory for live status
-TRACK_DIR="/tmp/model_downloads"
-rm -rf "$TRACK_DIR"
-mkdir -p "$TRACK_DIR"
-
-# Count total files
-TOTAL_FILES=$(grep -cv '^[[:space:]]*\(#\|$\)' "$MODELS_FILE")
-
-# Start all downloads in background
-while read -r folder url filename; do
-  [[ -z "$folder" || "$folder" =~ ^# ]] && continue
-
-  # Use custom filename if provided, otherwise extract from URL
-  if [ -z "$filename" ]; then
-    fname="$(basename "$url")"
-  else
-    fname="$filename"
+if [ $SKIP_DOWNLOADS -eq 0 ]; then
+  ARIA_HDR=(
+    --header="User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
+    --header="Accept: */*"
+  )
+  if [ -n "${HF_TOKEN:-}" ]; then
+    ARIA_HDR+=(--header="Authorization: Bearer ${HF_TOKEN}")
   fi
 
-  # Create tracking marker file with model name inside
-  TRACK_ID="${folder//\//_}__${fname//\//_}"
-  echo "$fname" > "$TRACK_DIR/$TRACK_ID"
+  # Create tracking directory for live status
+  TRACK_DIR="/tmp/model_downloads"
+  rm -rf "$TRACK_DIR"
+  mkdir -p "$TRACK_DIR"
 
-  mkdir -p "$folder"
+  # Count total files
+  TOTAL_FILES=$(grep -cv '^[[:space:]]*\(#\|$\)' "$MODELS_FILE")
 
-  # Use curl for Civitai downloads to handle redirects with auth headers (run in background)
-  if [[ "$url" =~ civitai.com ]]; then
-    (
-      curl -s -L -C - \
-        -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" \
-        ${CIVITAI_TOKEN:+-H "Authorization: Bearer ${CIVITAI_TOKEN}"} \
-        -o "$folder/$fname" \
-        "$url" 2>/dev/null
-      rm -f "$TRACK_DIR/$TRACK_ID"
-    ) &
-  else
-    # Use aria2c for other sources (faster with parallel connections, run in background)
-    (
-      DOWNLOAD_HEADERS=("${ARIA_HDR[@]}")
-      aria2c -q -x16 -s16 "${DOWNLOAD_HEADERS[@]}" \
-        --continue=true \
-        --allow-overwrite=true \
-        --auto-file-renaming=false \
-        -d "$folder" \
-        -o "$fname" \
-        "$url" >/dev/null 2>&1
-      rm -f "$TRACK_DIR/$TRACK_ID"
-    ) &
-  fi
+  # Start all downloads in background
+  while read -r folder url filename; do
+    [[ -z "$folder" || "$folder" =~ ^# ]] && continue
 
-done < "$MODELS_FILE"
+    # Use custom filename if provided, otherwise extract from URL
+    if [ -z "$filename" ]; then
+      fname="$(basename "$url")"
+    else
+      fname="$filename"
+    fi
 
-# Show live download status with speed
-echo "Downloading $TOTAL_FILES models..."
-echo ""
+    # Create tracking marker file with model name inside
+    TRACK_ID="${folder//\//_}__${fname//\//_}"
+    echo "$fname" > "$TRACK_DIR/$TRACK_ID"
 
-# Initialize for speed calculation
-LAST_BYTES=$(du -sb /workspace/ComfyUI/models 2>/dev/null | cut -f1 || echo 0)
-LAST_TIME=$(date +%s)
-SPEED_MBPS="--"
+    mkdir -p "$folder"
 
-while true; do
-  # Count remaining downloads
-  REMAINING=$(find "$TRACK_DIR" -type f 2>/dev/null | wc -l)
-  COMPLETED=$((TOTAL_FILES - REMAINING))
+    # Use curl for Civitai downloads to handle redirects with auth headers (run in background)
+    if [[ "$url" =~ civitai.com ]]; then
+      (
+        curl -s -L -C - \
+          -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" \
+          ${CIVITAI_TOKEN:+-H "Authorization: Bearer ${CIVITAI_TOKEN}"} \
+          -o "$folder/$fname" \
+          "$url" 2>/dev/null
+        rm -f "$TRACK_DIR/$TRACK_ID"
+      ) &
+    else
+      # Use aria2c for other sources (faster with parallel connections, run in background)
+      (
+        DOWNLOAD_HEADERS=("${ARIA_HDR[@]}")
+        aria2c -q -x16 -s16 "${DOWNLOAD_HEADERS[@]}" \
+          --continue=true \
+          --allow-overwrite=true \
+          --auto-file-renaming=false \
+          -d "$folder" \
+          -o "$fname" \
+          "$url" >/dev/null 2>&1
+        rm -f "$TRACK_DIR/$TRACK_ID"
+      ) &
+    fi
 
-  # Get current models being downloaded (suppress errors from race condition)
-  CURRENT_MODELS=""
-  for f in "$TRACK_DIR"/*; do
-    [ -f "$f" ] && CURRENT_MODELS+="$(cat "$f" 2>/dev/null || true) "
+  done < "$MODELS_FILE"
+
+  # Show live download status with speed
+  echo "Downloading $TOTAL_FILES models..."
+  echo ""
+
+  # Initialize for speed calculation
+  LAST_BYTES=$(du -sb /workspace/ComfyUI/models 2>/dev/null | cut -f1 || echo 0)
+  LAST_TIME=$(date +%s)
+  SPEED_MBPS="--"
+
+  while true; do
+    # Count remaining downloads
+    REMAINING=$(find "$TRACK_DIR" -type f 2>/dev/null | wc -l)
+    COMPLETED=$((TOTAL_FILES - REMAINING))
+
+    # Get current models being downloaded (suppress errors from race condition)
+    CURRENT_MODELS=""
+    for f in "$TRACK_DIR"/*; do
+      [ -f "$f" ] && CURRENT_MODELS+="$(cat "$f" 2>/dev/null || true) "
+    done
+
+    # Calculate download speed (total bytes in models folder)
+    CURRENT_BYTES=$(du -sb /workspace/ComfyUI/models 2>/dev/null | cut -f1 || echo 0)
+    CURRENT_TIME=$(date +%s)
+    TIME_DIFF=$((CURRENT_TIME - LAST_TIME))
+
+    if [ $TIME_DIFF -gt 0 ] && [ "$CURRENT_BYTES" -gt "$LAST_BYTES" ]; then
+      BYTES_DIFF=$((CURRENT_BYTES - LAST_BYTES))
+      SPEED_BPS=$((BYTES_DIFF / TIME_DIFF))
+      SPEED_MBPS=$(awk "BEGIN {printf \"%.1f\", $SPEED_BPS / 1048576}")
+      LAST_BYTES=$CURRENT_BYTES
+      LAST_TIME=$CURRENT_TIME
+    fi
+
+    # Show status
+    echo "[$COMPLETED/$TOTAL_FILES] ${SPEED_MBPS} MB/s | ${CURRENT_MODELS:0:60}"
+
+    if [ $REMAINING -eq 0 ]; then
+      break
+    fi
+
+    sleep 3
   done
 
-  # Calculate download speed (total bytes in models folder)
-  CURRENT_BYTES=$(du -sb /workspace/ComfyUI/models 2>/dev/null | cut -f1 || echo 0)
-  CURRENT_TIME=$(date +%s)
-  TIME_DIFF=$((CURRENT_TIME - LAST_TIME))
+  # Kill any remaining aria2c or curl processes
+  pkill -f "aria2c|curl" 2>/dev/null || true
+  sleep 1
 
-  if [ $TIME_DIFF -gt 0 ] && [ "$CURRENT_BYTES" -gt "$LAST_BYTES" ]; then
-    BYTES_DIFF=$((CURRENT_BYTES - LAST_BYTES))
-    SPEED_BPS=$((BYTES_DIFF / TIME_DIFF))
-    SPEED_MBPS=$(awk "BEGIN {printf \"%.1f\", $SPEED_BPS / 1048576}")
-    LAST_BYTES=$CURRENT_BYTES
-    LAST_TIME=$CURRENT_TIME
-  fi
+  # Clean up tracking directory
+  rm -rf "$TRACK_DIR"
 
-  # Show status
-  echo "[$COMPLETED/$TOTAL_FILES] ${SPEED_MBPS} MB/s | ${CURRENT_MODELS:0:60}"
-
-  if [ $REMAINING -eq 0 ]; then
-    break
-  fi
-
-  sleep 3
-done
-
-# Kill any remaining aria2c or curl processes
-pkill -f "aria2c|curl" 2>/dev/null || true
-sleep 1
-
-# Clean up tracking directory
-rm -rf "$TRACK_DIR"
-
-echo ""
-echo "✓ All models downloaded"
+  echo ""
+  echo "✓ All models downloaded"
+else
+  echo "✓ Using existing models from Network Volume"
+fi
 
 ############################
 # SAM model for Impact-Pack
@@ -330,6 +369,12 @@ nohup python main.py \
 
 echo "ComfyUI started."
 echo "Log file: /workspace/comfyui.log"
+
+############################
+# Create installation marker (for Network Volume)
+############################
+echo "$(date '+%Y-%m-%d %H:%M:%S') - Models: $MODEL_CHOICES" > "$MARKER_FILE"
+
 echo ""
 echo "════════════════════════════════════════════════════"
 echo "Installation completed!"
