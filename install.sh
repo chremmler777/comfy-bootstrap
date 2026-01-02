@@ -133,7 +133,15 @@ echo ""
 ############################
 echo "=== System dependencies ==="
 apt update
-apt install -y git wget aria2 ffmpeg python3-venv curl
+apt install -y git wget aria2 ffmpeg curl software-properties-common
+
+# Install Python 3.10 (ComfyUI requires Python 3.10+)
+if ! command -v python3.10 &> /dev/null; then
+  echo "Installing Python 3.10..."
+  add-apt-repository -y ppa:deadsnakes/ppa
+  apt update
+  apt install -y python3.10 python3.10-venv python3.10-dev
+fi
 
 ############################
 # ComfyUI core
@@ -147,12 +155,16 @@ fi
 
 cd ComfyUI
 
-python3 -m venv venv
+# Use Python 3.10 for venv
+python3.10 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
 
 pip install torch torchvision torchaudio \
   --index-url https://download.pytorch.org/whl/cu121
+
+# Remove strict version pins that cause issues
+sed -i 's/==.*//' requirements.txt
 
 pip install -r requirements.txt
 
