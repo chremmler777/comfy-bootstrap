@@ -135,13 +135,14 @@ echo "=== System dependencies ==="
 apt update
 apt install -y git wget aria2 ffmpeg curl software-properties-common
 
-# Install Python 3.10 (ComfyUI requires Python 3.10+)
-if ! command -v python3.10 &> /dev/null; then
-  echo "Installing Python 3.10..."
+# Install Python 3.10 with venv support (ComfyUI requires Python 3.10+)
+# Always ensure python3.10-venv is available
+echo "Ensuring Python 3.10 with venv support..."
+if ! python3.10 -m venv --help &> /dev/null; then
   add-apt-repository -y ppa:deadsnakes/ppa
   apt update
-  apt install -y python3.10 python3.10-venv python3.10-dev
 fi
+apt install -y python3.10 python3.10-venv python3.10-dev 2>/dev/null || true
 
 ############################
 # ComfyUI core
