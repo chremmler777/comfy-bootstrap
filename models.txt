@@ -9,12 +9,14 @@ loras/waniv https://civitai.com/api/download/models/2161023?type=Model&format=Sa
 loras/waniv https://civitai.com/api/download/models/2161067?type=Model&format=SafeTensor Anal_Sex_Low.safetensors
 loras/waniv https://civitai.com/api/download/models/2096600?type=Model&format=SafeTensor Brast_Physics_Low.safetensors
 loras/waniv https://civitai.com/api/download/models/2096603?type=Model&format=SafeTensor Brast_Physics_High.safetensors
-loras/waniv https://civitai.com/api/download/models/2267701?type=Model&format=SafeTensor PenisLora_High.safetensors
-loras/waniv https://civitai.com/api/download/models/2267701?type=Model&format=SafeTensor PenisLora_Low.safetensors
+loras/waniv https://civitai.com/api/download/models/2284083?type=Model&format=SafeTensor PenisLora_High.safetensors
+loras/waniv https://civitai.com/api/download/models/2284089?type=Model&format=SafeTensor PenisLora_Low.safetensors
 loras/waniv https://civitai.com/api/download/models/2282761?type=Model&format=SafeTensor Braless_High.safetensors
 loras/waniv https://civitai.com/api/download/models/2282767?type=Model&format=SafeTensor Braless_Low.safetensors
 loras/waniv https://civitai.com/api/download/models/2265946?type=Model&format=SafeTensor Wan_BottomTS_High.safetensors
 loras/waniv https://civitai.com/api/download/models/2266454?type=Model&format=SafeTensor Wan_BottomTS_Low.safetensors
+loras/waniv https://civitai.com/api/download/models/2484657?type=Model&format=SafeTensor K3NK_4llinOne_High.safetensors
+loras/waniv https://civitai.com/api/download/models/2538990?type=Model&format=SafeTensor K3NK_4llinOne_Low.safetensors
 
 # VAE (WAN 2.2)
 vae https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors wan_2.1_vae.safetensors
