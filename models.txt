@@ -1,20 +1,8 @@
-# diffusion models
-# WAN 2.2 I2V 14B Models (GGUF from Civitai)
-# OLD HuggingFace URLs (for reference):
-# diffusion_models/waniv https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/diffusion_models/wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors
-# diffusion_models/waniv https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/diffusion_models/wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors
-diffusion_models/waniv https://civitai.com/api/download/models/2540896?type=Model&format=GGUF&size=full&fp=fp8 WAN_2.2_Enhanced_NSFW_Low.gguf
-diffusion_models/waniv https://civitai.com/api/download/models/2540892?type=Model&format=GGUF&size=full&fp=fp8 WAN_2.2_Enhanced_NSFW_High.gguf
+# WAN 2.2 I2V 14B Models (GGUF - Enhanced NSFW V2 Q8)
+diffusion_models/waniv https://civitai.com/api/download/models/2584707?type=Model&format=GGUF&size=full&fp=fp8 WAN_2.2_Enhanced_NSFW_V2_Q8_Low.gguf
+diffusion_models/waniv https://civitai.com/api/download/models/2584698?type=Model&format=GGUF&size=full&fp=fp8 WAN_2.2_Enhanced_NSFW_V2_Q8_High.gguf
 
-# SDXL Checkpoints
-checkpoints https://civitai.com/api/download/models/2427287?type=Model&format=SafeTensor&size=full&fp=fp16 illustrij_v19.safetensors
-checkpoints https://civitai.com/api/download/models/2220886?type=Model&format=SafeTensor&size=pruned&fp=fp16 divingIllustriousReal_v50VAE.safetensors
-checkpoints https://civitai.com/api/download/models/1094291?type=Model&format=SafeTensor&size=pruned&fp=fp16 lustifySDXLNSFW_endgame.safetensors
-checkpoints https://civitai.com/api/download/models/1305584?type=Model&format=SafeTensor&size=pruned&fp=fp16 xxxRay_v11.B9Nu1xsu.safetensors
-checkpoints https://huggingface.co/BusterBoo99xX/novaAsianXL_illustriousV50/resolve/main/novaAsianXL_illustriousV50.safetensors novaAsianXL_illustriousV50.safetensors
-
-# loras
-# WAN IV LoRAs (Image-to-Video + General)
+# WAN 2.2 LoRAs (Image-to-Video)
 loras/waniv https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors
 loras/waniv https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors
 loras/waniv https://civitai.com/api/download/models/2161023?type=Model&format=SafeTensor Anal_Sex_High.safetensors
@@ -28,31 +16,11 @@ loras/waniv https://civitai.com/api/download/models/2282767?type=Model&format=Sa
 loras/waniv https://civitai.com/api/download/models/2265946?type=Model&format=SafeTensor Wan_BottomTS_High.safetensors
 loras/waniv https://civitai.com/api/download/models/2266454?type=Model&format=SafeTensor Wan_BottomTS_Low.safetensors
 
-# SDXL LoRAs
-loras/sd https://huggingface.co/LyliaEngine/spo_sdxl_10ep_4k-data_lora_webui/resolve/main/spo_sdxl_10ep_4k-data_lora_webui.safetensors spo_sdxl_10ep_4k-data_lora_webui.safetensors
-loras/sd https://civitai.com/api/download/models/50847?type=Model&format=SafeTensor qqq-grabbing_from_behind-v2-000006.safetensors
-loras/sd https://huggingface.co/KirtiKousik/New_loras/resolve/085b51891573bb7cd780eae502d2216da04d444c/Penis%20Size_alpha1.0_rank4_noxattn_last.safetensors Penis_Size_alpha1.0_rank4_noxattn_last.safetensors
-loras/sd https://civitai.com/api/download/models/146600?type=Model&format=SafeTensor testicles_slider_IXLR1_alpha16.0_rank32_full_last.safetensors
-loras/sd https://civitai.com/api/download/models/154977?type=Model&format=SafeTensor Realistic_Saggy_Testicles.safetensors
-loras/sd https://civitai.com/api/download/models/235392?type=Model&format=SafeTensor PenisQuiron_illus.safetensors
-loras/sd https://civitai.com/api/download/models/238897?type=Model&format=SafeTensor scarlet-nikke-richy-v1_pdxl.safetensors
-loras/sd https://civitai.com/api/download/models/242639?type=Model&format=SafeTensor longnippls-vp2-000012.safetensors
-loras/sd https://civitai.com/api/download/models/452767?type=Model&format=SafeTensor MS_Breasts_Style_V1_IL.safetensors
-loras/sd https://civitai.com/api/download/models/584853?type=Model&format=SafeTensor Breast_Size_Slider_Illustrious_V2.safetensors
-loras/sd https://civitai.com/api/download/models/482470?type=Model&format=PickleTensor cinematic_photography_detailed_illu_xl.safetensors
-loras/sd https://civitai.com/api/download/models/1681903?type=Model&format=SafeTensor ILXL_Realism_Slider_V.1.safetensors
-loras/sd https://civitai.com/api/download/models/1253047?type=Model&format=SafeTensor zy_illustrious_Realism_Enhancer_v1.safetensors
-loras/sd https://civitai.com/api/download/models/717403?type=Model&format=SafeTensor zy_AmateurStyle_v2.safetensors
-loras/sd https://civitai.com/api/download/models/1535516?type=Model&format=SafeTensor HugeFlaccid.safetensors
-loras/sd https://civitai.com/api/download/models/2189213?type=Model&format=SafeTensor StandingSex.safetensors
-loras/sd https://civitai.com/api/download/models/229775?type=Model&format=SafeTensor Futa_POV_taker.safetensors
-
-# vae
+# VAE (WAN 2.2)
 vae https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors wan_2.1_vae.safetensors
 vae https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/vae/wan2.2_vae.safetensors wan2.2_vae.safetensors
-vae https://huggingface.co/stabilityai/sdxl-vae/resolve/main/sdxl_vae.safetensors sdxl_vae.safetensors
 
-# text encoder (WAN 2.1 repo is correct here)
+# Text encoder
 text_encoders https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors umt5_xxl_fp8_e4m3fn_scaled.safetensors
 
 # Detection/YOLO models

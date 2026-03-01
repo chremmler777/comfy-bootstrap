@@ -70,17 +70,15 @@ if [ $SKIP_DOWNLOADS -eq 0 ]; then
   echo "╚════════════════════════════════════════════════╝"
   echo ""
   echo "Which model packages would you like to download?"
-  echo "  1) WAN 2.2 Image-to-Video (I2V models + LoRAs)"
-  echo "  2) SDXL Workflow (illustrij, lustify, nova, xxxray)"
+  echo "  1) WAN 2.2 I2V - Enhanced NSFW V2 Q8 (14B GGUF + LoRAs)"
   echo ""
-  echo "Select multiple options separated by spaces (e.g., '1 2' for both)"
-  echo "Press Enter for all options [default: 1 2]"
+  echo "Select options separated by spaces (e.g., '1')"
+  echo "Press Enter for all options [default: 1]"
   echo ""
   read -p "Enter your choices: " MODEL_CHOICES
-  MODEL_CHOICES=${MODEL_CHOICES:-1 2}
+  MODEL_CHOICES=${MODEL_CHOICES:-1}
 else
-  # Default to all for marker file purposes
-  MODEL_CHOICES="1 2"
+  MODEL_CHOICES="1"
 fi
 
 # Create temp models file based on selection
@@ -90,33 +88,21 @@ cp /workspace/bootstrap/models.txt "$MODELS_FILE"
 # Track what's being downloaded
 DOWNLOAD_LIST=""
 INCLUDE_WAN_IV=0
-INCLUDE_SDXL=0
 
 # Parse selections
 for choice in $MODEL_CHOICES; do
   case "$choice" in
     1)
       INCLUDE_WAN_IV=1
-      DOWNLOAD_LIST="$DOWNLOAD_LIST WAN-IV"
-      ;;
-    2)
-      INCLUDE_SDXL=1
-      DOWNLOAD_LIST="$DOWNLOAD_LIST SDXL"
+      DOWNLOAD_LIST="$DOWNLOAD_LIST WAN-2.2-I2V"
       ;;
   esac
 done
 
 # Filter models based on selections
 if [ $INCLUDE_WAN_IV -eq 0 ]; then
-  # Remove I2V models and LoRAs
   sed -i '/diffusion_models\/waniv/d' "$MODELS_FILE"
   sed -i '/loras\/waniv/d' "$MODELS_FILE"
-fi
-
-if [ $INCLUDE_SDXL -eq 0 ]; then
-  # Remove SDXL checkpoint models and LoRAs
-  sed -i '/illustrij_v19\|lustifySDXLNSFW_endgame\|novaAsianXL\|xxxRay_v11\|divingIllustriousReal_v50VAE/d' "$MODELS_FILE"
-  sed -i '/loras\/sd/d' "$MODELS_FILE"
 fi
 
 # Show selections
@@ -330,7 +316,6 @@ fi
 
 MODELS_DIR="/workspace/ComfyUI/models"
 echo "Model inventory:"
-echo "  checkpoints:      $(find $MODELS_DIR/checkpoints -type f 2>/dev/null | wc -l)"
 echo "  diffusion_models: $(find $MODELS_DIR/diffusion_models -type f 2>/dev/null | wc -l)"
 echo "  loras:            $(find $MODELS_DIR/loras -type f 2>/dev/null | wc -l)"
 echo "  text_encoders:    $(find $MODELS_DIR/text_encoders -type f 2>/dev/null | wc -l)"
