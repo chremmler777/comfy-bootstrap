@@ -10,16 +10,16 @@ DEFAULT_NEGATIVE = (
 
 # Available content LoRAs — each has a High and Low variant
 CONTENT_LORAS = {
-    "Anal_Sex":       ("Anal_Sex_High.safetensors",       "Anal_Sex_Low.safetensors"),
-    "Breast_Physics": ("Breast_Physics_High.safetensors", "Breast_Physics_Low.safetensors"),
-    "PenisLora":      ("PenisLora_High.safetensors",      "PenisLora_Low.safetensors"),
-    "Braless":        ("Braless_High.safetensors",         "Braless_Low.safetensors"),
-    "BottomTS":       ("Wan_BottomTS_High.safetensors",   "Wan_BottomTS_Low.safetensors"),
-    "K3NK_4llinOne":  ("K3NK_4llinOne_High.safetensors",  "K3NK_4llinOne_Low.safetensors"),
+    "Anal_Sex":       ("wan/Anal_Sex_High.safetensors",       "wan/Anal_Sex_Low.safetensors"),
+    "Breast_Physics": ("wan/Breast_Physics_High.safetensors", "wan/Breast_Physics_Low.safetensors"),
+    "PenisLora":      ("wan/PenisLora_High.safetensors",      "wan/PenisLora_Low.safetensors"),
+    "Braless":        ("wan/Braless_High.safetensors",         "wan/Braless_Low.safetensors"),
+    "BottomTS":       ("wan/Wan_BottomTS_High.safetensors",   "wan/Wan_BottomTS_Low.safetensors"),
+    "K3NK_4llinOne":  ("wan/K3NK_4llinOne_High.safetensors",  "wan/K3NK_4llinOne_Low.safetensors"),
 }
 
-LIGHTX2V_HIGH = "wan_lightx2v_4steps_high_noise.safetensors"
-LIGHTX2V_LOW  = "wan_lightx2v_4steps_low_noise.safetensors"
+LIGHTX2V_HIGH = "wan/wan_lightx2v_4steps_high_noise.safetensors"
+LIGHTX2V_LOW  = "wan/wan_lightx2v_4steps_low_noise.safetensors"
 
 
 def build_wan_i2v_workflow(
@@ -70,8 +70,8 @@ def build_wan_i2v_workflow(
     # ── shared: loaders ──────────────────────────────────────
     n_clip  = node("CLIPLoader", {"clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors", "type": "wan"})
     n_vae   = node("VAELoader",  {"vae_name": "wan_2.1_vae.safetensors"})
-    n_unet_h = node("UNETLoader", {"unet_name": "WAN_High.safetensors", "weight_dtype": "default"})
-    n_unet_l = node("UNETLoader", {"unet_name": "WAN_Low.safetensors",  "weight_dtype": "default"})
+    n_unet_h = node("UNETLoader", {"unet_name": "wan/WAN_High.safetensors", "weight_dtype": "default"})
+    n_unet_l = node("UNETLoader", {"unet_name": "wan/WAN_Low.safetensors",  "weight_dtype": "default"})
 
     # ── shared: prompts ──────────────────────────────────────
     n_pos = node("CLIPTextEncode", {"clip": [n_clip, 0], "text": positive_prompt})
@@ -138,7 +138,6 @@ def build_wan_i2v_workflow(
             "latent_image":  [n_i2v, 2],
             "add_noise":     "enable",
             "noise_seed":    seed,
-            "control_after_generate": "fixed",
             "steps":         total_steps,
             "cfg":           1.0,
             "sampler_name":  "euler",
@@ -154,7 +153,6 @@ def build_wan_i2v_workflow(
             "latent_image":  [n_ks1, 0],
             "add_noise":     "disable",
             "noise_seed":    seed,
-            "control_after_generate": "fixed",
             "steps":         total_steps,
             "cfg":           1.0,
             "sampler_name":  "euler",
@@ -173,7 +171,6 @@ def build_wan_i2v_workflow(
             "latent_image":  [n_i2v, 2],
             "add_noise":     "enable",
             "noise_seed":    seed,
-            "control_after_generate": "fixed",
             "steps":         total_steps,
             "cfg":           3.5,
             "sampler_name":  "euler",
@@ -189,7 +186,6 @@ def build_wan_i2v_workflow(
             "latent_image":  [n_ks1, 0],
             "add_noise":     "disable",
             "noise_seed":    seed,
-            "control_after_generate": "fixed",
             "steps":         total_steps,
             "cfg":           3.5,
             "sampler_name":  "euler",

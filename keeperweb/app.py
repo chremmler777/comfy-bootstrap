@@ -340,11 +340,14 @@ def animate_status(prompt_id: str):
     # collect output video paths
     videos = []
     for node_output in entry.get("outputs", {}).values():
-        for vinfo in node_output.get("videos", []):
-            fname = vinfo.get("filename", "")
-            subfolder = vinfo.get("subfolder", "")
-            rel = f"{subfolder}/{fname}".lstrip("/")
-            videos.append(rel)
+        for key in ("videos", "images"):
+            for vinfo in node_output.get(key, []):
+                fname = vinfo.get("filename", "")
+                if not fname.endswith(".mp4"):
+                    continue
+                subfolder = vinfo.get("subfolder", "")
+                rel = f"{subfolder}/{fname}".lstrip("/")
+                videos.append(rel)
 
     return jsonify({"status": "done", "videos": videos})
 

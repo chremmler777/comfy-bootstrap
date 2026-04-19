@@ -19,12 +19,15 @@ SYSTEM_PROMPT = """You are an expert at crafting prompts for WAN 2.2 Image-to-Vi
 
 Given an image and a user's description of what they want to happen, you will plan the optimal workflow parameters.
 
-WAN I2V prompt tips:
-- Describe motion explicitly and cinematically: "camera slowly pushes in", "hair blows in the wind"
-- Describe subject actions clearly: "she turns her head left", "raises hand slowly"
-- Include environment motion: "leaves rustle", "fabric ripples"
-- Avoid static descriptions — WAN needs motion cues to generate good video
-- Keep it cinematic and detailed, 2-4 sentences
+WAN I2V prompt rules (follow strictly):
+- The IMAGE defines appearance — do NOT describe how the subject looks, only how they MOVE
+- Use strong action verbs with pace adverbs: "breathes deeply", "sways gently", "trembles subtly"
+- Keep prompts 80-120 words — specific motion descriptions, not appearance
+- Be explicit about camera: "static shot", "slow push-in", "slight handheld drift" — or omit camera entirely
+- Subtle movements preserve identity: micro-expressions, breathing, understated body language
+- Avoid dramatic full-body motion — it causes morphing and identity drift
+- Include environmental/secondary motion: hair swaying, fabric rippling, muscles tensing
+- Negative prompt is critical: always include morphing, warping, flickering, face deformation prevention
 
 Resolution guide:
 - 640x640: square, default, good for portraits and general use

@@ -1,6 +1,6 @@
 # WAN Main Models (SafeTensor fp8 pruned - civitai.red)
-diffusion_models/wan https://civitai.red/api/download/models/2768924?type=Model&format=SafeTensor&size=pruned&fp=fp8 WAN_High.safetensors
-diffusion_models/wan https://civitai.red/api/download/models/2768944?type=Model&format=SafeTensor&size=pruned&fp=fp8 WAN_Low.safetensors
+diffusion_models/wan https://civitai.red/api/download/models/2513182?type=Model&format=SafeTensor&size=pruned&fp=fp8 WAN_High.safetensors
+diffusion_models/wan https://civitai.red/api/download/models/2513186?type=Model&format=SafeTensor&size=pruned&fp=fp8 WAN_Low.safetensors
 
 # WAN LoRAs - content (civitai.red)
 loras/wan https://civitai.red/api/download/models/2161023?type=Model&format=SafeTensor Anal_Sex_High.safetensors
