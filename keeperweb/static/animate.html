@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>WAN Animate</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, system-ui, sans-serif; background: #111; color: #ddd; min-height: 100vh; }
+
+  header { background: #1a1a1a; border-bottom: 1px solid #333; padding: 10px 16px; display: flex; gap: 12px; align-items: center; }
+  header h1 { font-size: 1em; font-weight: bold; color: #4af; }
+  header a { color: #888; font-size: 0.85em; text-decoration: none; }
+  header a:hover { color: #4af; }
+
+  .container { max-width: 860px; margin: 0 auto; padding: 24px 16px; }
+
+  .panel { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 6px; padding: 20px; margin-bottom: 20px; }
+  .panel h2 { font-size: 0.9em; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px; }
+
+  /* Drop zone */
+  .dropzone { border: 2px dashed #333; border-radius: 6px; padding: 32px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; position: relative; }
+  .dropzone:hover, .dropzone.drag { border-color: #4af; background: #162030; }
+  .dropzone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .dropzone .dz-label { color: #555; font-size: 0.9em; }
+  .dropzone .dz-label span { color: #4af; }
+  .dropzone .preview-wrap { display: none; }
+  .dropzone.has-image .dz-label { display: none; }
+  .dropzone.has-image .preview-wrap { display: block; }
+  .dropzone.has-image { border-color: #3a5a3a; background: #141e14; }
+  #previewImg { max-height: 260px; max-width: 100%; border-radius: 4px; display: block; margin: 0 auto; }
+  #previewName { margin-top: 8px; font-size: 0.8em; color: #888; }
+
+  label { display: block; font-size: 0.82em; color: #888; margin-bottom: 5px; margin-top: 14px; }
+  label:first-child { margin-top: 0; }
+  textarea, input[type=text], select { width: 100%; background: #222; color: #ddd; border: 1px solid #333; border-radius: 4px; padding: 8px 10px; font: inherit; font-size: 0.88em; resize: vertical; }
+  textarea { min-height: 80px; }
+  textarea:focus, input:focus, select:focus { outline: none; border-color: #4af; }
+
+  .row { display: flex; gap: 12px; }
+  .row > * { flex: 1; }
+
+  .opt-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .opt-chip { display: flex; align-items: center; gap: 6px; background: #222; border: 1px solid #333; border-radius: 20px; padding: 5px 12px; cursor: pointer; font-size: 0.82em; user-select: none; transition: border-color 0.15s; }
+  .opt-chip:hover { border-color: #555; }
+  .opt-chip input[type=checkbox] { accent-color: #4af; }
+  .opt-chip.active { border-color: #4af; color: #4af; }
+
+  .toggle-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+  .toggle-label { font-size: 0.82em; color: #888; }
+  .toggle { position: relative; width: 40px; height: 22px; display: inline-block; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; background: #333; border-radius: 22px; cursor: pointer; transition: background 0.2s; }
+  .slider:before { content:""; position: absolute; width: 16px; height: 16px; left: 3px; bottom: 3px; background: #888; border-radius: 50%; transition: transform 0.2s, background 0.2s; }
+  input:checked + .slider { background: #1a3a1a; }
+  input:checked + .slider:before { transform: translateX(18px); background: #4c4; }
+
+  .submit-btn { display: block; width: 100%; padding: 12px; margin-top: 20px; background: #1a3a1a; border: 2px solid #4c4; color: #4c4; font: inherit; font-size: 1em; font-weight: bold; border-radius: 5px; cursor: pointer; transition: background 0.15s; }
+  .submit-btn:hover:not(:disabled) { background: #243a24; }
+  .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Status */
+  .status-box { display: none; }
+  .status-box.show { display: block; }
+  .status-inner { border-radius: 6px; padding: 16px 20px; }
+  .status-inner.running { background: #1a1a2a; border: 1px solid #44f; }
+  .status-inner.done    { background: #1a2a1a; border: 1px solid #4c4; }
+  .status-inner.error   { background: #2a1a1a; border: 1px solid #a44; }
+  .status-title { font-size: 0.85em; font-weight: bold; margin-bottom: 8px; }
+  .status-inner.running .status-title { color: #88f; }
+  .status-inner.done    .status-title { color: #4c4; }
+  .status-inner.error   .status-title { color: #f66; }
+  .status-prompt { font-size: 0.78em; color: #666; margin-bottom: 12px; font-style: italic; }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #44f; border-top-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 6px; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .result-vids { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+  .result-vid { background: #111; border: 1px solid #2a2a2a; border-radius: 4px; overflow: hidden; width: 260px; }
+  .result-vid video { width: 100%; display: block; }
+  .result-vid .vid-actions { display: flex; gap: 6px; padding: 6px; }
+  .result-vid .vid-actions a { flex: 1; text-align: center; background: #1a1a2a; border: 1px solid #4af; color: #4af; border-radius: 3px; padding: 4px; font-size: 0.78em; text-decoration: none; }
+  .result-vid .vid-actions a:hover { background: #1e2a3e; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>✨ Animate with WAN</h1>
+  <a href="/">← Back to Videos</a>
+</header>
+
+<div class="container">
+
+  <!-- Image drop zone -->
+  <div class="panel">
+    <h2>1. Start Image</h2>
+    <div class="dropzone" id="dropzone">
+      <input type="file" id="imgInput" accept="image/*">
+      <div class="dz-label">
+        <div style="font-size:2em; margin-bottom:8px;">🖼</div>
+        <div>Drop image here or <span>click to browse</span></div>
+        <div style="margin-top:6px; font-size:0.8em;">PNG / JPG</div>
+      </div>
+      <div class="preview-wrap">
+        <img id="previewImg" src="" alt="">
+        <div id="previewName"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Prompt -->
+  <div class="panel">
+    <h2>2. What should happen?</h2>
+    <label>Describe the motion / action you want (Claude will craft the optimal prompt)</label>
+    <textarea id="promptIn" placeholder="e.g. she slowly turns and smiles at the camera, hair blowing in the wind, cinematic slow push-in"></textarea>
+    <div class="toggle-row">
+      <label class="toggle">
+        <input type="checkbox" id="useAI" checked>
+        <span class="slider"></span>
+      </label>
+      <span class="toggle-label">Use Claude AI to craft the WAN prompt (recommended)</span>
+    </div>
+  </div>
+
+  <!-- Options -->
+  <div class="panel">
+    <h2>3. Options</h2>
+    <div class="row">
+      <div>
+        <label>Resolution</label>
+        <select id="resSelect">
+          <option value="640x640">640×640 (square, default)</option>
+          <option value="832x480">832×480 (landscape)</option>
+          <option value="480x832">480×832 (portrait)</option>
+          <option value="960x544">960×544 (cinematic)</option>
+        </select>
+      </div>
+      <div>
+        <label>Length</label>
+        <select id="lenSelect">
+          <option value="49">~2 sec (49 frames)</option>
+          <option value="81" selected>~3.4 sec (81 frames)</option>
+          <option value="121">~5 sec (121 frames)</option>
+        </select>
+      </div>
+      <div>
+        <label>Mode</label>
+        <select id="modeSelect">
+          <option value="fast" selected>Fast (4-step LightX2V)</option>
+          <option value="quality">Quality (20-step)</option>
+        </select>
+      </div>
+    </div>
+
+    <label style="margin-top:18px;">Content LoRAs</label>
+    <div class="opt-row" id="loraChips"></div>
+  </div>
+
+  <button class="submit-btn" id="submitBtn" disabled>🎬 Generate Video</button>
+
+  <!-- Status -->
+  <div class="status-box" id="statusBox">
+    <div class="status-inner" id="statusInner">
+      <div class="status-title" id="statusTitle"></div>
+      <div class="status-prompt" id="statusPrompt"></div>
+      <div class="result-vids" id="resultVids"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const LORAS = [
+  {id:"Breast_Physics", label:"Breast Physics"},
+  {id:"Braless",        label:"Braless"},
+  {id:"PenisLora",      label:"Penis LoRA"},
+  {id:"Anal_Sex",       label:"Anal Sex"},
+  {id:"K3NK_4llinOne",  label:"K3NK All-in-One"},
+  {id:"BottomTS",       label:"Bottom / TS"},
+];
+
+const dropzone  = document.getElementById("dropzone");
+const imgInput  = document.getElementById("imgInput");
+const previewImg = document.getElementById("previewImg");
+const previewName = document.getElementById("previewName");
+const submitBtn  = document.getElementById("submitBtn");
+const statusBox  = document.getElementById("statusBox");
+const statusInner = document.getElementById("statusInner");
+const statusTitle = document.getElementById("statusTitle");
+const statusPrompt = document.getElementById("statusPrompt");
+const resultVids = document.getElementById("resultVids");
+
+let selectedFile = null;
+let pollTimer = null;
+
+// ── LoRA chips ──────────────────────────────────────────
+const loraChips = document.getElementById("loraChips");
+for (const l of LORAS) {
+  const chip = document.createElement("div");
+  chip.className = "opt-chip";
+  chip.dataset.id = l.id;
+  chip.innerHTML = `<input type="checkbox" id="lora_${l.id}"> <label for="lora_${l.id}" style="margin:0;cursor:pointer;color:inherit;">${l.label}</label>`;
+  chip.querySelector("input").addEventListener("change", e => {
+    chip.classList.toggle("active", e.target.checked);
+  });
+  chip.addEventListener("click", e => {
+    if (e.target.tagName !== "INPUT") {
+      const cb = chip.querySelector("input");
+      cb.checked = !cb.checked;
+      chip.classList.toggle("active", cb.checked);
+    }
+  });
+  loraChips.appendChild(chip);
+}
+
+// ── Image selection ──────────────────────────────────────
+function setImage(file) {
+  selectedFile = file;
+  const url = URL.createObjectURL(file);
+  previewImg.src = url;
+  previewName.textContent = file.name + " · " + (file.size / 1e6).toFixed(1) + " MB";
+  dropzone.classList.add("has-image");
+  submitBtn.disabled = false;
+}
+
+imgInput.addEventListener("change", () => { if (imgInput.files[0]) setImage(imgInput.files[0]); });
+dropzone.addEventListener("dragover", e => { e.preventDefault(); dropzone.classList.add("drag"); });
+dropzone.addEventListener("dragleave", () => dropzone.classList.remove("drag"));
+dropzone.addEventListener("drop", e => {
+  e.preventDefault(); dropzone.classList.remove("drag");
+  if (e.dataTransfer.files[0]) setImage(e.dataTransfer.files[0]);
+});
+
+// ── Submit ───────────────────────────────────────────────
+submitBtn.addEventListener("click", async () => {
+  if (!selectedFile) return;
+
+  submitBtn.disabled = true;
+  clearInterval(pollTimer);
+  resultVids.innerHTML = "";
+  setStatus("running", '<span class="spinner"></span> Submitting to ComfyUI…');
+
+  const res = document.getElementById("resSelect").value.split("x");
+  const [w, h] = [parseInt(res[0]), parseInt(res[1])];
+  const length = parseInt(document.getElementById("lenSelect").value);
+  const fast_mode = document.getElementById("modeSelect").value === "fast";
+  const use_ai = document.getElementById("useAI").checked;
+  const prompt = document.getElementById("promptIn").value.trim();
+
+  const selectedLoras = [...document.querySelectorAll("#loraChips input:checked")]
+    .map(cb => [cb.closest(".opt-chip").dataset.id, 0.85]);
+
+  const fd = new FormData();
+  fd.append("image", selectedFile);
+  fd.append("prompt", prompt);
+  fd.append("width", w);
+  fd.append("height", h);
+  fd.append("length", length);
+  fd.append("fast_mode", fast_mode);
+  fd.append("use_ai_planner", use_ai);
+  // loras as JSON string
+  fd.append("content_loras_json", JSON.stringify(selectedLoras));
+
+  let data;
+  try {
+    const r = await fetch("/api/animate", {method: "POST", body: fd});
+    data = await r.json();
+  } catch(e) {
+    setStatus("error", "Network error: " + e.message);
+    submitBtn.disabled = false;
+    return;
+  }
+
+  if (data.error) {
+    setStatus("error", "Error: " + data.error);
+    submitBtn.disabled = false;
+    return;
+  }
+
+  const pId = data.prompt_id;
+  const usedPrompt = data.positive_prompt || "";
+  setStatus("running", `<span class="spinner"></span> Generating… <small style="color:#555">(ID: ${pId})</small>`);
+  if (usedPrompt) statusPrompt.textContent = "Prompt: " + usedPrompt;
+
+  // poll status
+  pollTimer = setInterval(async () => {
+    try {
+      const sr = await fetch("/api/animate/status/" + pId);
+      const sd = await sr.json();
+      if (sd.status === "done") {
+        clearInterval(pollTimer);
+        showResults(sd.videos || []);
+        submitBtn.disabled = false;
+      } else if (sd.status === "error") {
+        clearInterval(pollTimer);
+        setStatus("error", "Generation failed: " + (sd.error || "unknown error"));
+        submitBtn.disabled = false;
+      } else if (sd.status === "running") {
+        setStatus("running", `<span class="spinner"></span> Running…`);
+      }
+    } catch(e) {}
+  }, 4000);
+});
+
+function setStatus(type, html) {
+  statusBox.classList.add("show");
+  statusInner.className = "status-inner " + type;
+  statusTitle.innerHTML = html;
+}
+
+function showResults(videos) {
+  setStatus("done", "✓ Video ready!");
+  if (!videos.length) { statusTitle.textContent += " (check ComfyUI output folder)"; return; }
+  for (const v of videos) {
+    const div = document.createElement("div");
+    div.className = "result-vid";
+    div.innerHTML = `
+      <video src="/video/${v}" controls autoplay loop muted></video>
+      <div class="vid-actions">
+        <a href="/download/${v}" download>⬇ Download</a>
+        <a href="/" target="_blank">📺 Open in Keeper</a>
+      </div>`;
+    resultVids.appendChild(div);
+  }
+}
+</script>
+</body>
+</html>

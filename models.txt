@@ -1,24 +1,26 @@
-# WAN 2.2 I2V 14B Models (GGUF - Enhanced NSFW V2 Q8)
-diffusion_models/waniv https://civitai.com/api/download/models/2584707?type=Model&format=GGUF&size=full&fp=fp8 WAN_2.2_Enhanced_NSFW_V2_Q8_Low.gguf
-diffusion_models/waniv https://civitai.com/api/download/models/2584698?type=Model&format=GGUF&size=full&fp=fp8 WAN_2.2_Enhanced_NSFW_V2_Q8_High.gguf
+# WAN Main Models (SafeTensor fp8 pruned - civitai.red)
+diffusion_models/wan https://civitai.red/api/download/models/2768924?type=Model&format=SafeTensor&size=pruned&fp=fp8 WAN_High.safetensors
+diffusion_models/wan https://civitai.red/api/download/models/2768944?type=Model&format=SafeTensor&size=pruned&fp=fp8 WAN_Low.safetensors
 
-# WAN 2.2 LoRAs (Image-to-Video)
-loras/waniv https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors
-loras/waniv https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors
-loras/waniv https://civitai.com/api/download/models/2161023?type=Model&format=SafeTensor Anal_Sex_High.safetensors
-loras/waniv https://civitai.com/api/download/models/2161067?type=Model&format=SafeTensor Anal_Sex_Low.safetensors
-loras/waniv https://civitai.com/api/download/models/2096600?type=Model&format=SafeTensor Brast_Physics_Low.safetensors
-loras/waniv https://civitai.com/api/download/models/2096603?type=Model&format=SafeTensor Brast_Physics_High.safetensors
-loras/waniv https://civitai.com/api/download/models/2284083?type=Model&format=SafeTensor PenisLora_High.safetensors
-loras/waniv https://civitai.com/api/download/models/2284089?type=Model&format=SafeTensor PenisLora_Low.safetensors
-loras/waniv https://civitai.com/api/download/models/2282761?type=Model&format=SafeTensor Braless_High.safetensors
-loras/waniv https://civitai.com/api/download/models/2282767?type=Model&format=SafeTensor Braless_Low.safetensors
-loras/waniv https://civitai.com/api/download/models/2265946?type=Model&format=SafeTensor Wan_BottomTS_High.safetensors
-loras/waniv https://civitai.com/api/download/models/2266454?type=Model&format=SafeTensor Wan_BottomTS_Low.safetensors
-loras/waniv https://civitai.com/api/download/models/2484657?type=Model&format=SafeTensor K3NK_4llinOne_High.safetensors
-loras/waniv https://civitai.com/api/download/models/2538990?type=Model&format=SafeTensor K3NK_4llinOne_Low.safetensors
+# WAN LoRAs - content (civitai.red)
+loras/wan https://civitai.red/api/download/models/2161023?type=Model&format=SafeTensor Anal_Sex_High.safetensors
+loras/wan https://civitai.red/api/download/models/2161067?type=Model&format=SafeTensor Anal_Sex_Low.safetensors
+loras/wan https://civitai.red/api/download/models/2096600?type=Model&format=SafeTensor Breast_Physics_Low.safetensors
+loras/wan https://civitai.red/api/download/models/2096603?type=Model&format=SafeTensor Breast_Physics_High.safetensors
+loras/wan https://civitai.red/api/download/models/2284083?type=Model&format=SafeTensor PenisLora_High.safetensors
+loras/wan https://civitai.red/api/download/models/2284089?type=Model&format=SafeTensor PenisLora_Low.safetensors
+loras/wan https://civitai.red/api/download/models/2282761?type=Model&format=SafeTensor Braless_High.safetensors
+loras/wan https://civitai.red/api/download/models/2282767?type=Model&format=SafeTensor Braless_Low.safetensors
+loras/wan https://civitai.red/api/download/models/2265946?type=Model&format=SafeTensor Wan_BottomTS_High.safetensors
+loras/wan https://civitai.red/api/download/models/2266454?type=Model&format=SafeTensor Wan_BottomTS_Low.safetensors
+loras/wan https://civitai.red/api/download/models/2484657?type=Model&format=SafeTensor K3NK_4llinOne_High.safetensors
+loras/wan https://civitai.red/api/download/models/2538990?type=Model&format=SafeTensor K3NK_4llinOne_Low.safetensors
 
-# VAE (WAN 2.2)
+# WAN LightX2V LoRAs (4-step fast sampling - HuggingFace)
+loras/wan https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors wan_lightx2v_4steps_low_noise.safetensors
+loras/wan https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors wan_lightx2v_4steps_high_noise.safetensors
+
+# VAE
 vae https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors wan_2.1_vae.safetensors
 vae https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/vae/wan2.2_vae.safetensors wan2.2_vae.safetensors
 

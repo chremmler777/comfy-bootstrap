@@ -70,7 +70,7 @@ if [ $SKIP_DOWNLOADS -eq 0 ]; then
   echo "╚════════════════════════════════════════════════╝"
   echo ""
   echo "Which model packages would you like to download?"
-  echo "  1) WAN 2.2 I2V - Enhanced NSFW V2 Q8 (14B GGUF + LoRAs)"
+  echo "  1) WAN 14B fp8 SafeTensor + LoRAs (civitai.red)"
   echo ""
   echo "Select options separated by spaces (e.g., '1')"
   echo "Press Enter for all options [default: 1]"
@@ -94,15 +94,15 @@ for choice in $MODEL_CHOICES; do
   case "$choice" in
     1)
       INCLUDE_WAN_IV=1
-      DOWNLOAD_LIST="$DOWNLOAD_LIST WAN-2.2-I2V"
+      DOWNLOAD_LIST="$DOWNLOAD_LIST WAN-14B-fp8"
       ;;
   esac
 done
 
 # Filter models based on selections
 if [ $INCLUDE_WAN_IV -eq 0 ]; then
-  sed -i '/diffusion_models\/waniv/d' "$MODELS_FILE"
-  sed -i '/loras\/waniv/d' "$MODELS_FILE"
+  sed -i '/diffusion_models\/wan/d' "$MODELS_FILE"
+  sed -i '/loras\/wan/d' "$MODELS_FILE"
 fi
 
 # Show selections
@@ -219,7 +219,7 @@ if [ $SKIP_DOWNLOADS -eq 0 ]; then
     mkdir -p "$folder"
 
     # Use curl for Civitai downloads to handle redirects with auth headers (run in background)
-    if [[ "$url" =~ civitai.com ]]; then
+    if [[ "$url" =~ civitai ]]; then
       (
         curl -s -L -C - \
           -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" \
@@ -369,6 +369,27 @@ echo "ComfyUI started."
 echo "Log file: /workspace/comfyui.log"
 
 ############################
+# Keeperweb (comfyui2)
+############################
+echo "=== Keeperweb ==="
+pip install --quiet flask anthropic
+
+mkdir -p /workspace/comfyui2/keeper_web/static
+mkdir -p /workspace/comfyui2/data
+
+cp /workspace/bootstrap/keeperweb/app.py          /workspace/comfyui2/keeper_web/app.py
+cp /workspace/bootstrap/keeperweb/wan_workflow.py  /workspace/comfyui2/keeper_web/wan_workflow.py
+cp /workspace/bootstrap/keeperweb/planner.py       /workspace/comfyui2/keeper_web/planner.py
+cp /workspace/bootstrap/keeperweb/static/index.html   /workspace/comfyui2/keeper_web/static/index.html
+cp /workspace/bootstrap/keeperweb/static/animate.html /workspace/comfyui2/keeper_web/static/animate.html
+
+nohup python /workspace/comfyui2/keeper_web/app.py \
+  > /workspace/keeperweb.log 2>&1 &
+
+echo "Keeperweb started on port 8189"
+echo "Log: /workspace/keeperweb.log"
+
+############################
 # Create installation marker (for Network Volume)
 ############################
 echo "$(date '+%Y-%m-%d %H:%M:%S') - Models: $MODEL_CHOICES" > "$MARKER_FILE"
@@ -388,4 +409,7 @@ echo "📊 ComfyUI runtime logs:"
 echo "   /workspace/comfyui.log"
 echo ""
 echo "✅ Ready to use!"
+echo ""
+echo "🎬 ComfyUI:   port 8188"
+echo "📺 Keeperweb: port 8189  (browse + download videos)"
 echo "════════════════════════════════════════════════════"
