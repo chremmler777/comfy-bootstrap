@@ -9,10 +9,12 @@ import anthropic
 AVAILABLE_LORAS = [
     "Anal_Sex",
     "Breast_Physics",
+    "Bouncing_Boobs",
     "PenisLora",
     "Braless",
     "BottomTS",
     "K3NK_4llinOne",
+    "WalkToward",
 ]
 
 SYSTEM_PROMPT = """You are an expert at crafting prompts for WAN 2.2 Image-to-Video generation.
@@ -36,12 +38,14 @@ Resolution guide:
 - 960x544: wide cinematic
 
 Available content LoRAs (use only when clearly relevant to the scene/request):
-- Breast_Physics: adds breast physics/jiggle motion
-- Braless: specific braless appearance with physics
-- PenisLora: male anatomy
-- Anal_Sex: anal sex motion
-- K3NK_4llinOne: general intimate/sex motion
-- BottomTS: bottom/butt motion
+- Breast_Physics: breast physics/jiggle motion — use for any female with visible breasts
+- Bouncing_Boobs: stronger bouncing motion — pair with Breast_Physics for active scenes; trigger: "her breasts are bouncing"
+- Braless: braless appearance with physics — use when clothing suggests no bra
+- PenisLora: male anatomy — use when penis is visible or relevant
+- Anal_Sex: anal sex motion — only for explicit anal scenes
+- K3NK_4llinOne: general intimate/sex motion — for sex scenes without a more specific LoRA
+- BottomTS: butt/bottom motion — use when ass is featured
+- WalkToward: POV walking approach — trigger: "From a first-person perspective, they walk forward toward the camera, and reach out hands to hug it."
 
 Return ONLY valid JSON with this exact structure:
 {
@@ -51,12 +55,12 @@ Return ONLY valid JSON with this exact structure:
   "height": 640,
   "length": 81,
   "fps": 24,
-  "fast_mode": true,
+  "mode": "fast",
   "content_loras": [["LoraName", 0.8]]
 }
 
-length guide: 49 frames = ~2s, 81 frames = ~3.4s, 121 frames = ~5s (use 81 as default)
-fast_mode: true for 4-step (faster, good quality), false for 20-step (slower, higher quality)
+length guide: 49 frames = ~2s, 81 frames = ~3.4s, 121 frames = ~5s, 161 frames = ~6.7s (use 81 as default)
+mode: "fast" for LightX2V 6-step (default), "q8" for 8-step quality, "q20" for 20-step quality
 content_loras: list of [name, strength] pairs, empty array if none needed
 negative_prompt: default to standard WAN negative unless user specifies otherwise"""
 
@@ -97,9 +101,14 @@ def plan_workflow(image_path: str | Path, user_prompt: str) -> dict:
     )
 
     text = message.content[0].text.strip()
-    # strip markdown code fences if present
     if text.startswith("```"):
         text = text.split("```")[1]
         if text.startswith("json"):
             text = text[4:]
-    return json.loads(text.strip())
+    params = json.loads(text.strip())
+    # normalise: ensure both fast_mode and mode are present
+    if "mode" not in params:
+        params["mode"] = "fast" if params.get("fast_mode", True) else "q20"
+    if "fast_mode" not in params:
+        params["fast_mode"] = params["mode"] == "fast"
+    return params

@@ -2,294 +2,1112 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>WAN Videos</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>keeper-web</title>
 <style>
   :root { color-scheme: dark; }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, system-ui, sans-serif; background: #111; color: #ddd; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-
-  header { background: #1a1a1a; border-bottom: 1px solid #333; padding: 8px 12px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; flex-shrink: 0; }
-  header h1 { font-size: 1em; font-weight: bold; color: #4af; margin-right: 4px; }
-  select, button { background: #222; color: #ddd; border: 1px solid #444; padding: 4px 8px; border-radius: 3px; font: inherit; cursor: pointer; }
-  select:hover, button:hover { background: #2e2e2e; }
-  .stat { color: #888; font-size: 0.85em; flex: 1; }
-  .btn-dl { background: #1a2a1a; border-color: #4c4; color: #4c4; font-weight: bold; }
-  .btn-dl:hover { background: #243a24; }
-  .btn-refresh { font-size: 0.85em; }
-
-  .layout { display: flex; flex: 1; overflow: hidden; }
-
-  nav { width: 190px; background: #161616; border-right: 1px solid #222; overflow-y: auto; flex-shrink: 0; }
-  .folder { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #1c1c1c; display: flex; justify-content: space-between; align-items: center; font-size: 0.82em; line-height: 1.3; word-break: break-all; }
-  .folder:hover { background: #1e1e1e; }
-  .folder.active { background: #1b2a3a; color: #4af; }
-  .folder .cnt { color: #555; font-size: 0.85em; flex-shrink: 0; margin-left: 6px; }
-  .folder.active .cnt { color: #4af; }
-
-  main { flex: 1; overflow-y: auto; padding: 6px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px; }
-  .empty { padding: 40px; text-align: center; color: #555; }
-
-  .card { background: #1a1a1a; border: 2px solid #2a2a2a; border-radius: 4px; overflow: hidden; }
-  .card.keep { border-color: #3a6a3a; }
-  .thumb-wrap { position: relative; background: #000; aspect-ratio: 16/9; overflow: hidden; cursor: pointer; }
-  .thumb-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .thumb-wrap .play-icon { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); opacity: 0; transition: opacity 0.15s; font-size: 2.5em; }
-  .thumb-wrap:hover .play-icon { opacity: 1; }
-  .thumb-wrap.no-thumb { display: flex; align-items: center; justify-content: center; color: #444; font-size: 2em; }
-  .card .info { padding: 6px 8px 8px; }
-  .card .name { font-size: 0.78em; color: #bbb; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
-  .card .meta { font-size: 0.7em; color: #555; display: flex; gap: 8px; margin-bottom: 6px; }
-  .card .actions { display: flex; gap: 5px; }
-  .card .actions button, .card .actions a { flex: 1; text-align: center; }
-  .card .actions a { display: flex; }
-  .card .actions a button { flex: 1; }
-  .btn-keep { background: #1a2a1a; border-color: #3a5a3a; color: #8c8; font-size: 0.8em; }
-  .btn-keep.on { background: #4c4; color: #111; border-color: #4c4; font-weight: bold; }
-  .btn-open { background: #1a1a2a; border-color: #3a3a6a; color: #88c; font-size: 0.8em; }
-  .btn-down { background: #1a1a1a; border-color: #444; color: #888; font-size: 0.8em; }
-  .btn-down:hover { border-color: #4af; color: #4af; }
-
-  /* Modal */
-  .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.97); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 200; padding: 16px; gap: 12px; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, system-ui, sans-serif; background: #111; color: #ddd; }
+  body { display: flex; }
+  main { flex: 1; min-width: 0; }
+  aside { width: 200px; background: #1a1a1a; border-left: 1px solid #333; padding: 12px; position: sticky; top: 0; align-self: flex-start; height: 100vh; overflow-y: auto; font-size: 0.85em; }
+  aside h3 { margin: 0 0 8px; color: #888; font-size: 0.75em; text-transform: uppercase; letter-spacing: 1px; }
+  aside .key { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #222; }
+  aside .key kbd { background: #333; color: #fc4; padding: 2px 6px; border-radius: 3px; font-family: monospace; font-size: 0.9em; }
+  aside .sep { height: 12px; }
+  header { position: sticky; top: 0; background: #1a1a1a; border-bottom: 1px solid #333; padding: 8px 12px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; z-index: 10; }
+  header select, header button { background: #222; color: #ddd; border: 1px solid #444; padding: 4px 8px; border-radius: 3px; font: inherit; }
+  header button:hover { background: #333; cursor: pointer; }
+  .stat { color: #888; font-size: 0.9em; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 6px; padding: 6px; }
+  .card { position: relative; background: #1a1a1a; border: 2px solid #333; border-radius: 3px; overflow: hidden; cursor: pointer; aspect-ratio: 904 / 1400; }
+  .card.active { border-color: #4af; box-shadow: 0 0 0 1px #4af; }
+  .card.keep { border-color: #4c4; }
+  .card.reject { border-color: #c44; opacity: 0.4; }
+  .card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .card .label { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.85)); padding: 18px 6px 4px; font-size: 0.75em; }
+  .card .date { position: absolute; top: 4px; left: 4px; background: rgba(0,0,0,0.7); padding: 2px 6px; border-radius: 3px; font-size: 0.7em; color: #aaa; }
+  .badges { position: absolute; top: 4px; right: 4px; display: flex; gap: 4px; flex-wrap: wrap; }
+  .badge { background: rgba(0,0,0,0.7); padding: 2px 6px; border-radius: 3px; font-size: 0.7em; }
+  .badge.keep { background: #4c4; color: #111; font-weight: bold; }
+  .badge.hq { background: #4af; color: #111; }
+  .badge.hq.done { background: #2a7; color: #fff; }
+  .badge.hq.done::after { content: " ✓"; }
+  .badge.hq.pending::after { content: " ⏳"; }
+  .badge.note { background: #fc4; color: #111; }
+  .badge.regen { background: #e84; color: #111; font-weight: bold; }
+  .badge.refined { background: #a6f; color: #111; }
+  .badge.civitai { background: #07f; color: #fff; font-weight: bold; }
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 100; flex-direction: column; padding: 20px; gap: 12px; }
   .modal.show { display: flex; }
-  .modal video { max-width: 92vw; max-height: 72vh; background: #000; }
-  .minfo { color: #888; font-size: 0.85em; text-align: center; max-width: 80vw; }
-  .mactions { display: flex; gap: 10px; }
-  .mactions button { padding: 7px 20px; border-radius: 4px; font-size: 0.9em; }
-  .m-keep { background: #1a2a1a; border: 1px solid #4c4; color: #4c4; }
-  .m-keep.on { background: #4c4; color: #111; font-weight: bold; }
-  .m-dl { background: #1a1a2a; border: 1px solid #4af; color: #4af; }
-  .m-close { background: #2a1a1a; border: 1px solid #a44; color: #a44; }
-  .m-prev, .m-next { background: #1e1e1e; border: 1px solid #444; color: #888; padding: 7px 14px !important; }
-  .m-prev:hover, .m-next:hover { border-color: #4af; color: #4af; }
+  .modal .zoomwrap { max-width: 85vw; max-height: 70vh; overflow: hidden; cursor: zoom-in; position: relative; display: flex; align-items: center; justify-content: center; }
+  .modal .zoomwrap img { max-width: 85vw; max-height: 70vh; object-fit: contain; transform-origin: center center; transition: transform 0.05s linear; user-select: none; -webkit-user-drag: none; }
+  .modal img { max-width: 85vw; max-height: 70vh; object-fit: contain; }
+  .zoomwrap.zoomed { cursor: grab; }
+  .zoomwrap.zoomed.dragging { cursor: grabbing; }
+  .modal .info { color: #aaa; font-size: 0.9em; text-align: center; }
+  .compare { display: none; gap: 12px; max-width: 95vw; max-height: 80vh; }
+  .compare.show { display: flex; }
+  .compare .pane { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
+  .compare .pane img { max-width: 100%; max-height: 78vh; object-fit: contain; cursor: pointer; border: 2px solid #333; border-radius: 3px; }
+  .compare .pane.active img { border-color: #4af; box-shadow: 0 0 0 1px #4af; }
+  .compare .pane.keep img { border-color: #4c4; }
+  .compare .pane .cap { font-size: 0.8em; color: #aaa; text-align: center; }
+  .compare .pane .cap .name { color: #ddd; }
+  /* Bake-off grid — N variants side by side */
+  .bakeoff { display: none; gap: 10px; max-width: 97vw; max-height: 82vh; overflow-x: auto; padding: 4px; }
+  .bakeoff.show { display: flex; }
+  .bakeoff .pane { flex: 0 0 auto; min-width: 260px; max-width: 440px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .bakeoff .pane img { max-width: 100%; max-height: 72vh; object-fit: contain; cursor: pointer; border: 2px solid #333; border-radius: 3px; display: block; }
+  .bakeoff .pane.active img { border-color: #4af; box-shadow: 0 0 0 1px #4af; }
+  .bakeoff .pane.keep img { border-color: #4c4; }
+  .bakeoff .pane.reject img { border-color: #c44; opacity: 0.4; }
+  .bakeoff .pane .cap { font-size: 0.72em; color: #aaa; text-align: center; max-width: 100%; line-height: 1.3; }
+  .bakeoff .pane .variant { color: #fc4; font-weight: bold; font-size: 1.1em; }
+  .bakeoff .pane .peek { color: #8af; font-family: monospace; font-size: 0.92em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .bakeoff .pane .badges-inline { display: inline-flex; gap: 3px; margin-left: 4px; }
+  .bakeoff .pane .badges-inline .b { padding: 0 4px; border-radius: 2px; font-size: 0.85em; font-weight: bold; }
+  .bakeoff .pane .badges-inline .b.k { background: #4c4; color: #111; }
+  .bakeoff .pane .badges-inline .b.hq { background: #4af; color: #111; }
+  .bakeoff .pane .badges-inline .b.n { background: #fc4; color: #111; }
+  .card .bakeoff-badge { position: absolute; top: 4px; left: 50px; background: #e84; color: #111; padding: 2px 6px; border-radius: 3px; font-size: 0.7em; font-weight: bold; }
+  /* Workflow peek panel in single view */
+  #peekPanel { background: #151515; border: 1px solid #333; border-radius: 3px; padding: 8px 12px; font-family: monospace; font-size: 0.82em; color: #bbb; max-width: 80vw; display: none; white-space: pre-wrap; line-height: 1.4; }
+  #peekPanel.show { display: block; }
+  #peekPanel .k { color: #fc4; }
+  #peekPanel .v { color: #8af; }
+  #peekLine { color: #8af; font-family: monospace; font-size: 0.82em; }
+  #noteInput { background: #222; color: #ddd; border: 1px solid #444; padding: 8px; width: 400px; max-width: 80vw; }
+  #exportBox { position: fixed; inset: 40px; background: #111; border: 1px solid #444; padding: 12px; display: none; flex-direction: column; z-index: 200; }
+  #exportBox.show { display: flex; }
+  #exportBox textarea { flex: 1; background: #000; color: #ddd; border: 1px solid #333; font-family: monospace; font-size: 0.85em; padding: 8px; }
+  #exportBox .row { display: flex; gap: 8px; margin-top: 8px; }
+  .similar-btn { background: #e84; color: #111; border: none; padding: 6px 16px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 1em; }
+  .similar-btn:hover { background: #f96; }
+  .similar-btn:disabled { background: #666; cursor: wait; }
+  .pag-btn { background: #7af; color: #111; border: none; padding: 6px 14px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 1em; }
+  .pag-btn:hover { background: #9cf; }
+  .pag-btn:disabled { background: #666; cursor: wait; }
+  .animate-btn { background: #4c4; color: #111; border: none; padding: 6px 14px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 1em; }
+  .animate-btn:hover { background: #6e6; }
+  /* Animate overlay */
+  .animate-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 300; display: none; align-items: center; justify-content: center; }
+  .animate-overlay.show { display: flex; }
+  .animate-box { background: #1a1a1a; border: 1px solid #333; border-radius: 6px; padding: 20px; width: 480px; max-width: 95vw; display: flex; flex-direction: column; gap: 12px; }
+  .animate-box h3 { margin: 0; color: #4c4; font-size: 1em; }
+  .animate-box textarea { background: #222; color: #ddd; border: 1px solid #444; border-radius: 4px; padding: 8px; font: inherit; font-size: 0.9em; min-height: 80px; resize: vertical; }
+  .animate-box textarea:focus { outline: none; border-color: #4c4; }
+  .animate-box .arow { display: flex; gap: 8px; }
+  .animate-box select { flex: 1; background: #222; color: #ddd; border: 1px solid #444; border-radius: 3px; padding: 5px; font: inherit; font-size: 0.85em; }
+  .animate-box .go-btn { background: #4c4; color: #111; border: none; padding: 8px 20px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 1em; }
+  .animate-box .go-btn:hover { background: #6e6; }
+  .animate-box .go-btn:disabled { background: #555; cursor: wait; }
+  .animate-box .cancel-btn { background: #333; color: #aaa; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 1em; }
+  .animate-status { font-size: 0.85em; color: #888; min-height: 1.2em; }
+  #nowRendering { display:none; position:fixed; bottom:16px; right:16px; background:#1a1a1a; border:1px solid #444; border-radius:6px; padding:8px; z-index:50; width:200px; }
+  #nowRendering .nr-label { font-size:0.75em; color:#888; margin-bottom:4px; }
+  #previewImg { width:100%; border-radius:3px; display:block; }
+  #progressBar { background:#333; border-radius:2px; height:4px; margin-top:6px; overflow:hidden; }
+  #progressFill { background:#4af; height:100%; width:0%; transition:width 0.15s linear; }
+  #progressText { font-size:0.72em; color:#888; text-align:center; margin-top:3px; }
+  .similar-row { display: flex; gap: 10px; align-items: center; justify-content: center; flex-shrink: 0; }
+  .similar-toast { color: #4c4; font-size: 0.9em; font-weight: bold; }
+  .card .similar-card-btn { position: absolute; bottom: 28px; right: 6px; background: #e84; color: #111; border: none; padding: 4px 10px; border-radius: 3px; font-weight: bold; cursor: pointer; font-size: 0.75em; z-index: 5; }
+  .card .similar-card-btn:hover { background: #f96; }
+  .card .similar-card-btn.queued { background: #4c4; cursor: default; }
+  .card .hq-card-btn { position: absolute; bottom: 28px; left: 6px; background: #48f; color: #fff; border: none; padding: 4px 8px; border-radius: 3px; font-weight: bold; cursor: pointer; font-size: 0.75em; z-index: 5; }
+  .card .hq-card-btn:hover { background: #6af; }
+  .card .hq-card-btn.queued { background: #4c4; cursor: default; }
+  .star-overlay { position: absolute; top: 4px; right: 6px; font-size: 1.15em; line-height: 1; text-shadow: 0 1px 4px #000; z-index: 6; pointer-events: none; }
+  .card.stars-3 { box-shadow: 0 0 0 2px gold, 0 0 12px 2px rgba(255,215,0,0.3); }
+  .badge.stars { background: gold; color: #111; font-weight: bold; }
 </style>
 </head>
 <body>
-
+<main>
 <header>
-  <h1>🎬 WAN Videos</h1>
-  <select id="filterSel">
-    <option value="all">All Videos</option>
-    <option value="keepers">⭐ Keepers Only</option>
-  </select>
+  <a href="/latest" style="background:#222;color:#4af;border:1px solid #444;padding:4px 8px;border-radius:3px;text-decoration:none;font-weight:bold">latest →</a>
+  <a href="/stars" style="background:#222;color:gold;border:1px solid #555;padding:4px 8px;border-radius:3px;text-decoration:none;font-weight:bold">★★★ gallery</a>
+  <a href="/videos" style="background:#222;color:#c8f;border:1px solid #556;padding:4px 8px;border-radius:3px;text-decoration:none;font-weight:bold">🎬 videos</a>
+  <select id="charSel"></select>
   <select id="sortSel">
-    <option value="newest">Newest First</option>
-    <option value="oldest">Oldest First</option>
-    <option value="name">By Name</option>
+    <option value="newest">newest first</option>
+    <option value="name">by name</option>
   </select>
-  <span class="stat" id="stat">Loading…</span>
-  <button class="btn-refresh" onclick="refresh()">↺ Refresh</button>
-  <button class="btn-dl" id="dlAllBtn">⬇ Download Keepers</button>
+  <select id="filterSel">
+    <option value="all">all</option>
+    <option value="keep">keepers</option>
+    <option value="reject">rejects</option>
+    <option value="unmarked">unmarked</option>
+  </select>
+  <span class="stat" id="stat"></span>
+  <button id="exportBtn">preview</button>
+  <button id="submitBtn" style="background:#4c4;color:#111;font-weight:bold">submit to claude</button>
+  <span class="stat" id="submitStat"></span>
+  <span class="stat" id="comfyQ" style="margin-left:auto; color:#fc4; font-weight:bold"></span>
 </header>
-
-<div class="layout">
-  <nav id="sidebar"></nav>
-  <main><div class="grid" id="grid"></div></main>
-</div>
+<div class="grid" id="grid"></div>
+</main>
+<aside>
+  <h3>Marks</h3>
+  <div class="key"><span>keep</span><kbd>Z</kbd></div>
+  <div class="key"><span>reject</span><kbd>X</kbd></div>
+  <div class="key"><span>note</span><kbd>C</kbd></div>
+  <div class="key"><span>regen flag</span><kbd>R</kbd></div>
+  <div class="key"><span>★ cycle stars</span><kbd>Space</kbd></div>
+  <div class="key"><span>make similar</span><kbd>S</kbd></div>
+  <div class="key"><span>PAG redo</span><kbd>P</kbd></div>
+  <div class="key"><span>upload → CivitAI</span><kbd>U</kbd></div>
+  <div class="sep"></div>
+  <h3>HQ Pass</h3>
+  <div class="key"><span>face</span><kbd>1</kbd></div>
+  <div class="key"><span>hand/cock</span><kbd>2</kbd></div>
+  <div class="key"><span>full 2-pass</span><kbd>3</kbd></div>
+  <div class="sep"></div>
+  <h3>Navigate</h3>
+  <div class="key"><span>prev/next</span><kbd>← →</kbd></div>
+  <div class="key"><span>up/down row</span><kbd>↑ ↓</kbd></div>
+  <div class="key"><span>open</span><kbd>Enter</kbd></div>
+  <div class="key"><span>close</span><kbd>Esc</kbd></div>
+  <div class="sep"></div>
+  <h3>Compare</h3>
+  <div class="key"><span>refine pair</span><kbd>V</kbd></div>
+  <div class="key"><span>bake-off grid</span><kbd>B</kbd></div>
+  <div class="key"><span>switch side</span><kbd>Tab</kbd></div>
+  <div class="sep"></div>
+  <h3>Video</h3>
+  <div class="key"><span>animate</span><kbd>A</kbd></div>
+  <div class="sep"></div>
+  <h3>Peek</h3>
+  <div class="key"><span>full peek</span><kbd>I</kbd></div>
+</aside>
 
 <div class="modal" id="modal">
-  <video id="mVid" controls></video>
-  <div class="minfo" id="minfo"></div>
-  <div class="mactions">
-    <button class="m-prev" id="mPrev">◀</button>
-    <button class="m-keep" id="mKeep">⭐ Keep</button>
-    <button class="m-dl" id="mDl">⬇ Download</button>
-    <button class="m-close" id="mClose">✕ Close</button>
-    <button class="m-next" id="mNext">▶</button>
+  <div class="zoomwrap" id="zoomwrap"><img id="modalImg"><div id="modalStars" style="position:absolute;top:8px;right:12px;font-size:1.6em;color:gold;text-shadow:0 2px 6px #000;pointer-events:none;z-index:5"></div></div>
+  <div class="compare" id="compare">
+    <div class="pane" id="paneL" data-side="L"><img id="imgL"><div class="cap" id="capL"></div></div>
+    <div class="pane" id="paneR" data-side="R"><img id="imgR"><div class="cap" id="capR"></div></div>
+  </div>
+  <div class="bakeoff" id="bakeoff"></div>
+  <div class="info" id="modalInfo"></div>
+  <div id="peekPanel"></div>
+  <div class="similar-row">
+    <button class="similar-btn" id="similarBtn" onclick="makeSimilar()">make similar ×2</button>
+    <button class="pag-btn" id="pagBtn" onclick="redoPag()">PAG redo</button>
+    <button class="animate-btn" id="animateBtn" onclick="openAnimate()">▶ animate</button>
+    <span class="similar-toast" id="similarToast"></span>
+  </div>
+  <input id="noteInput" placeholder="note (Enter to save, Esc to close)">
+</div>
+
+<!-- Live preview widget (ComfyUI WebSocket) -->
+<div id="nowRendering">
+  <div class="nr-label">now rendering</div>
+  <img id="previewImg" alt="">
+  <div id="progressBar"><div id="progressFill"></div></div>
+  <div id="progressText"></div>
+</div>
+
+<div id="exportBox">
+  <textarea id="exportText" readonly></textarea>
+  <div class="row">
+    <button onclick="navigator.clipboard.writeText(document.getElementById('exportText').value)">copy</button>
+    <button onclick="document.getElementById('exportBox').classList.remove('show')">close</button>
+  </div>
+</div>
+
+<div class="animate-overlay" id="animateOverlay">
+  <div class="animate-box">
+    <h3>▶ Animate with WAN I2V</h3>
+    <div id="animateImgName" style="font-size:0.8em;color:#888;"></div>
+    <textarea id="animatePrompt" placeholder="Short description of what you want: heavy breathing, turns head, smile…"></textarea>
+    <div class="arow" style="margin-bottom:4px">
+      <button class="go-btn" id="animatePlanBtn" onclick="planAnimate()" style="background:#2a4a2a;border-color:#4a8a4a;font-size:0.85em;padding:4px 10px">✨ Plan with AI</button>
+      <span id="animatePlanStatus" style="font-size:0.8em;color:#888"></span>
+    </div>
+    <textarea id="animatePromptFull" placeholder="AI-enhanced prompt will appear here — or type directly…" style="margin-top:0;background:#1a2a1a;border-color:#3a5a3a;min-height:80px"></textarea>
+    <div class="arow">
+      <select id="animateRes"></select>
+      <select id="animateLen">
+        <option value="49">~2s (49fr)</option>
+        <option value="81" selected>~3.4s (81fr)</option>
+        <option value="121">~5s (121fr)</option>
+        <option value="161">~6.7s (161fr)</option>
+        <option value="201">~8.4s (201fr)</option>
+        <option value="241">~10s (241fr)</option>
+      </select>
+      <select id="animateMode">
+        <option value="fast" selected>Fast (LightX2V 6-step)</option>
+        <option value="q8">Quality 8-step</option>
+        <option value="q20">Quality 20-step</option>
+        <option value="q30">Quality 30-step</option>
+      </select>
+    </div>
+    <div class="animate-status" id="animateStatus"></div>
+    <div class="arow">
+      <button class="go-btn" id="animateGoBtn" onclick="submitAnimate()">🎬 Generate</button>
+      <button class="cancel-btn" onclick="closeAnimate()">Cancel</button>
+    </div>
   </div>
 </div>
 
 <script>
-let videos = [];
-let folders = [];
-let curFolder = "";
-let curFilter = "all";
-let curSort = "newest";
-let curIdx = -1;
-let keepMap = {};
+const HQ_MAP = {1:"face", 2:"hand-cock", 3:"full-2pass"};
+let char = null, items = [], active = 0, noteOpen = false;
+const pendingSimilar = new Set();
+let compareOn = false, compareSide = "R"; // R = refine pane active
+let bakeOn = false, bakeIdx = 0, bakeGroup = null; // bake-off grid state
+let peekFullOn = false;
+const peekCache = new Map(); // name -> peek json
+const groupByName = new Map(); // stem -> group key
+const groupMembers = new Map(); // group key -> [stems sorted]
 
-const grid = document.getElementById("grid");
-const stat = document.getElementById("stat");
-const modal = document.getElementById("modal");
-const mVid = document.getElementById("mVid");
-const minfo = document.getElementById("minfo");
-const mKeep = document.getElementById("mKeep");
-
-// ── folders ──────────────────────────────────────────────
-async function loadFolders() {
-  const r = await fetch("/api/folders");
-  folders = await r.json();
-  const nav = document.getElementById("sidebar");
-  nav.innerHTML = "";
-  for (const f of folders) {
-    const d = document.createElement("div");
-    d.className = "folder" + (f.folder === curFolder ? " active" : "");
-    d.innerHTML = `<span>${f.label || "All Videos"}</span><span class="cnt">${f.count}</span>`;
-    d.onclick = () => { curFolder = f.folder; loadVideos(); highlightFolder(); };
-    nav.appendChild(d);
-  }
-}
-
-function highlightFolder() {
-  document.querySelectorAll(".folder").forEach((el, i) => {
-    el.classList.toggle("active", folders[i] && folders[i].folder === curFolder);
-  });
-}
-
-// ── videos ───────────────────────────────────────────────
-async function loadVideos() {
-  let url = `/api/videos?sort=${curSort}`;
-  if (curFolder) url += `&folder=${encodeURIComponent(curFolder)}`;
-  if (curFilter === "keepers") url += "&filter=keepers";
-  const r = await fetch(url);
-  videos = await r.json();
-  keepMap = {};
-  for (const v of videos) if (v.keep) keepMap[v.path] = true;
-  renderGrid();
-}
-
-async function refresh() {
-  await loadFolders();
-  await loadVideos();
-}
-
-// ── grid ─────────────────────────────────────────────────
-function fmt(b) {
-  return b > 1e9 ? (b/1e9).toFixed(1)+" GB" : b > 1e6 ? (b/1e6).toFixed(1)+" MB" : (b/1e3).toFixed(0)+" KB";
-}
+const $ = id => document.getElementById(id);
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 function fmtDate(ts) {
-  const d = new Date(ts*1000);
-  return d.toLocaleDateString()+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  const d = new Date(ts * 1000);
+  const hh = String(d.getHours()).padStart(2,"0");
+  const mm = String(d.getMinutes()).padStart(2,"0");
+  return `${MONTHS[d.getMonth()]} ${d.getDate()} ${hh}:${mm}`;
 }
 
-function renderGrid() {
-  const keepCount = videos.filter(v => v.keep || keepMap[v.path]).length;
-  stat.textContent = `${videos.length} video${videos.length!==1?'s':''} · ${keepCount} keepers`;
-  if (!videos.length) { grid.innerHTML = '<div class="empty">No videos found</div>'; return; }
-  grid.innerHTML = "";
-  for (let i = 0; i < videos.length; i++) grid.appendChild(makeCard(videos[i], i));
+async function loadChars() {
+  const r = await fetch("/api/characters");
+  const chars = await r.json();
+  $("charSel").innerHTML = chars.map(c => `<option value="${c.name}">${c.name} (${c.count})</option>`).join("");
+  if (chars.length) { char = chars[0].name; loadItems(); }
 }
 
-function makeCard(v, idx) {
-  const isKeep = !!(v.keep || keepMap[v.path]);
-  const card = document.createElement("div");
-  card.className = "card" + (isKeep ? " keep" : "");
-  card.dataset.path = v.path;
-
-  const thumbEl = document.createElement("div");
-  thumbEl.className = "thumb-wrap";
-  const img = document.createElement("img");
-  img.loading = "lazy";
-  img.onerror = () => { thumbEl.innerHTML = '<span>▶</span>'; thumbEl.classList.add("no-thumb"); };
-  img.src = `/thumb/${v.path}`;
-  thumbEl.appendChild(img);
-  thumbEl.innerHTML += '<div class="play-icon">▶</div>';
-  thumbEl.onclick = () => openModal(idx);
-
-  const info = document.createElement("div");
-  info.className = "info";
-  info.innerHTML = `
-    <div class="name" title="${v.filename}">${v.filename}</div>
-    <div class="meta"><span>${fmt(v.size)}</span><span>${fmtDate(v.mtime)}</span></div>
-    <div class="actions">
-      <button class="btn-keep${isKeep?' on':''}" data-path="${v.path}">⭐${isKeep?' Kept':' Keep'}</button>
-      <button class="btn-open" onclick="openModal(${idx})">⛶ View</button>
-      <a href="/download/${v.path}" download="${v.filename}"><button class="btn-down">⬇</button></a>
-    </div>`;
-
-  info.querySelector(".btn-keep").onclick = (e) => { e.stopPropagation(); toggleKeep(v.path, idx); };
-
-  card.appendChild(thumbEl);
-  card.appendChild(info);
-  return card;
+async function loadItems() {
+  const sort = $("sortSel").value;
+  const r = await fetch(`/api/images/${char}?sort=${sort}`);
+  const newItems = await r.json();
+  // Clear pending similar flags when new images arrived
+  if (items.length > 0 && newItems.length > items.length) {
+    pendingSimilar.clear();
+  }
+  items = newItems;
+  detectGroups();
+  active = 0;
+  render();
 }
 
-// ── keep ─────────────────────────────────────────────────
-async function toggleKeep(path, idx) {
-  const on = !(keepMap[path]);
-  keepMap[path] = on;
-  if (videos[idx]) videos[idx].keep = on;
-  await fetch(`/api/mark/${path}`, {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({keep: on})
+// ---- Bake-off group detection ----
+// Strip trailing _NNNNN counter from ComfyUI filename, then find the shortest
+// prefix ending in "_" such that ≥2 items share it AND variants have letters.
+// Groups flat-filename test batches (jpag_gala_*, onsenY_*, m97t_*, pb_*) into
+// a single bake-off without needing test scripts to emit a manifest.
+function stemNoCounter(name) {
+  // ComfyUI saves as <prefix>_NNNNN_ (trailing underscore).
+  // Strip `_NNNNN_?$` to get the user-supplied prefix.
+  return name.replace(/_\d{5,}_?$/, "");
+}
+function hasLetter(s) { return /[a-zA-Z]/.test(s); }
+function detectGroups() {
+  groupByName.clear();
+  groupMembers.clear();
+  const stems = items.map(it => stemNoCounter(it.name));
+  // Index stems by every underscore-terminated prefix
+  const prefixHits = new Map(); // prefix -> Set(stems)
+  for (const s of stems) {
+    const parts = s.split("_");
+    for (let i = 1; i < parts.length; i++) {
+      const p = parts.slice(0, i).join("_") + "_";
+      if (p.length < 4) continue;
+      if (!prefixHits.has(p)) prefixHits.set(p, new Set());
+      prefixHits.get(p).add(s);
+    }
+  }
+  // For each stem, the group is the SHORTEST prefix with ≥2 distinct matches
+  // where at least one other matching stem diverges at the next character.
+  // This keeps bake-off batches together (pb_* → all 6, m97t_* → all 6)
+  // while still bounding the group to meaningful prefixes.
+  for (let idx = 0; idx < items.length; idx++) {
+    const s = stems[idx];
+    const parts = s.split("_");
+    let chosen = null;
+    for (let i = 1; i < parts.length; i++) {
+      const p = parts.slice(0, i).join("_") + "_";
+      if (p.length < 4) continue;
+      const hits = prefixHits.get(p);
+      if (!hits || hits.size < 2) continue;
+      // Ensure variants diverge right after the prefix
+      const rests = new Set();
+      for (const h of hits) rests.add(h.slice(p.length));
+      if (rests.size < 2) continue;
+      chosen = p;
+      break; // shortest wins — prefer wider bake-off groups
+    }
+    if (!chosen) continue;
+    const variant = s.slice(chosen.length);
+    if (!hasLetter(variant)) continue;
+    // Verify all group members have letter-variants (reject digit-only enumerations)
+    const members = [...prefixHits.get(chosen)];
+    if (!members.every(m => hasLetter(m.slice(chosen.length)))) continue;
+    const groupKey = chosen.replace(/_$/, "");
+    // Don't group on the character name itself — that just lumps all
+    // non-plain files together (e.g. medusa_angle_*, medusa_221test_*).
+    if (groupKey === char) continue;
+    groupByName.set(items[idx].name, groupKey);
+    if (!groupMembers.has(groupKey)) {
+      // Map member stems back to item names (there can be ≥1 item per stem due to counter)
+      const memberNames = items
+        .filter(it => members.includes(stemNoCounter(it.name)))
+        .map(it => it.name);
+      groupMembers.set(groupKey, memberNames);
+    }
+  }
+}
+function groupOf(name) { return groupByName.get(name); }
+function groupSize(name) {
+  const g = groupOf(name);
+  return g ? (groupMembers.get(g)?.length || 0) : 0;
+}
+
+function filtered() {
+  const f = $("filterSel").value;
+  return items.map((it, i) => ({it, i})).filter(({it}) => {
+    if (f === "keep") return it.keep;
+    if (f === "reject") return it.reject;
+    if (f === "unmarked") return !it.keep && !it.reject;
+    return true;
   });
-  const card = document.querySelector(`.card[data-path="${CSS.escape(path)}"]`);
-  if (card) {
-    card.classList.toggle("keep", on);
-    const btn = card.querySelector(".btn-keep");
-    btn.className = "btn-keep" + (on ? " on" : "");
-    btn.textContent = "⭐" + (on ? " Kept" : " Keep");
+}
+
+function starStr(n) {
+  if (!n) return '';
+  const colors = ['','#aaa','#cc6','gold'];
+  return `<div class="star-overlay" style="color:${colors[n]}">${'★'.repeat(n)}</div>`;
+}
+
+function render() {
+  const view = filtered();
+  const kept = items.filter(i => i.keep).length;
+  $("stat").textContent = `${items.length} imgs · ${kept} keepers · showing ${view.length}`;
+  $("grid").innerHTML = view.map(({it, i}) => {
+    const hasPending = pendingSimilar.has(it.name);
+    const simBtn = hasPending
+      ? `<button class="similar-card-btn queued" data-name="${it.name}">queued</button>`
+      : `<button class="similar-card-btn" data-name="${it.name}">similar</button>`;
+    const hqBtn = it.stars === 3
+      ? `<button class="hq-card-btn" data-name="${it.name}">▲HQ</button>`
+      : '';
+    const gs = groupSize(it.name);
+    const bakeBadge = gs >= 2 ? `<div class="bakeoff-badge">B×${gs}</div>` : '';
+    const starClass = it.stars === 3 ? 'stars-3' : '';
+    return `
+    <div class="card ${it.keep?'keep':''} ${it.reject?'reject':''} ${starClass} ${i===active?'active':''}" data-idx="${i}">
+      <img loading="lazy" src="/img/${char}/${it.file}">
+      <div class="date">${fmtDate(it.mtime)}</div>
+      ${bakeBadge}
+      ${starStr(it.stars)}
+      <div class="badges">
+        ${it.keep ? '<span class="badge keep">K</span>' : ''}
+        ${it.stars ? `<span class="badge stars">${'★'.repeat(it.stars)}</span>` : ''}
+        ${it.hq ? `<span class="badge hq ${it.hq_done ? 'done' : 'pending'}">${it.hq}</span>` : ''}
+        ${it.regen ? '<span class="badge regen" title="regen requested">↻</span>' : (it.note ? '<span class="badge note">N</span>' : '')}
+        ${it.refined ? '<span class="badge refined">R</span>' : ''}
+        ${it.civitai ? '<span class="badge civitai" title="sent to CivitAI">↑C</span>' : ''}
+      </div>
+      ${hqBtn}
+      ${simBtn}
+      <div class="label">${it.name}${it.note ? ' · '+it.note : ''}</div>
+    </div>`;
+  }).join("");
+  $("grid").querySelectorAll(".card").forEach(el => {
+    el.onclick = e => {
+      if (e.target.closest('.similar-card-btn') || e.target.closest('.hq-card-btn')) return;
+      active = +el.dataset.idx; render(); openModal();
+    };
+  });
+  $("grid").querySelectorAll(".similar-card-btn:not(.queued)").forEach(btn => {
+    btn.onclick = e => {
+      e.stopPropagation();
+      queueSimilarByName(btn.dataset.name, btn);
+    };
+  });
+  $("grid").querySelectorAll(".hq-card-btn").forEach(btn => {
+    btn.onclick = e => {
+      e.stopPropagation();
+      queueHqByName(btn.dataset.name, btn);
+    };
+  });
+  const activeEl = $("grid").querySelector(".card.active");
+  if (activeEl) activeEl.scrollIntoView({block: "nearest"});
+}
+
+function itemByName(name) { return items.find(x => x.name === name); }
+
+function activeCompareItem() {
+  // In bake-off mode, the currently highlighted variant is what marks apply to
+  if (bakeOn && bakeGroup) {
+    const names = groupMembers.get(bakeGroup) || [];
+    const pick = names[bakeIdx];
+    return itemByName(pick) || items[active];
   }
-  if (curIdx === idx) syncModalKeep(path);
-  const keepCount = Object.values(keepMap).filter(Boolean).length;
-  stat.textContent = `${videos.length} video${videos.length!==1?'s':''} · ${keepCount} keepers`;
+  // In compare mode, the active side's item is what marks apply to
+  if (!compareOn) return items[active];
+  const cur = items[active];
+  if (!cur || !cur.pair) return cur;
+  const pair = itemByName(cur.pair);
+  // Determine which is "original" (L) vs "refine/HQ" (R)
+  const curIsRefine = /_refine_|_hq_/.test(cur.name);
+  const L = curIsRefine ? pair : cur;
+  const R = curIsRefine ? cur : pair;
+  return compareSide === "L" ? L : R;
 }
 
-// ── modal ─────────────────────────────────────────────────
-function openModal(idx) {
-  curIdx = idx;
-  const v = videos[idx];
-  mVid.src = `/video/${v.path}`;
-  mVid.play();
-  minfo.textContent = `${v.filename}  ·  ${fmt(v.size)}  ·  ${fmtDate(v.mtime)}`;
-  syncModalKeep(v.path);
-  document.getElementById("mDl").onclick = () => { window.location = `/download/${v.path}`; };
-  modal.classList.add("show");
+// ---- Workflow peek ----
+async function fetchPeek(name) {
+  if (peekCache.has(name)) return peekCache.get(name);
+  try {
+    const r = await fetch(`/api/peek/${char}/${name}`);
+    if (!r.ok) return null;
+    const p = await r.json();
+    peekCache.set(name, p);
+    return p;
+  } catch (e) { return null; }
 }
-function closeModal() {
-  modal.classList.remove("show");
-  mVid.pause(); mVid.src = "";
-  curIdx = -1;
+function peekOneLine(p) {
+  if (!p) return "";
+  const bits = [];
+  if (p.seed != null) bits.push(`seed ${String(p.seed).slice(-8)}`);
+  if (p.cfg != null) bits.push(`cfg ${p.cfg}${p.cfg2 != null && p.cfg2 !== p.cfg ? "/"+p.cfg2 : ""}`);
+  if (p.sampler) bits.push(p.sampler);
+  if (p.steps != null) bits.push(`${p.steps}${p.steps2 ? "+"+p.steps2 : ""}st`);
+  if (p.cock_mode) bits.push(p.cock_mode);
+  if (p.has_pag) bits.push(`PAG@${p.pag_scale}`);
+  if (p.has_negpip) bits.push("NEGPIP");
+  return bits.join(" · ");
 }
-function syncModalKeep(path) {
-  const on = !!(keepMap[path]);
-  mKeep.className = "m-keep" + (on ? " on" : "");
-  mKeep.textContent = on ? "⭐ Kept" : "⭐ Keep";
+function peekFull(p) {
+  if (!p) return "no metadata";
+  const lines = [];
+  const kv = (k, v) => `<span class="k">${k}:</span> <span class="v">${v}</span>`;
+  lines.push(kv("seed", p.seed));
+  lines.push(kv("cfg", `${p.cfg}${p.cfg2 != null ? " / "+p.cfg2 : ""}`));
+  lines.push(kv("sampler", `${p.sampler} ${p.scheduler||""}`));
+  lines.push(kv("steps", `${p.steps}${p.steps2 ? " + "+p.steps2 : ""}`));
+  lines.push(kv("mode", p.cock_mode));
+  if (p.checkpoint) lines.push(kv("ckpt", p.checkpoint));
+  if (p.has_pag) lines.push(kv("PAG", `scale=${p.pag_scale} block=${p.pag_block}`));
+  if (p.has_negpip) lines.push(kv("NegPip", "on"));
+  if (p.loras && p.loras.length) {
+    const ls = p.loras.map(l => `${l.name || l.slot}@${l.strength}`).join(", ");
+    lines.push(kv("loras", ls));
+  }
+  return lines.join("\n");
+}
+async function refreshPeek() {
+  const it = items[active];
+  if (!it) return;
+  const p = await fetchPeek(it.name);
+  // Update one-line peek in modalInfo (appended) + full panel if open
+  const one = peekOneLine(p);
+  const baseInfo = fmtInfo(it);
+  const groupInfo = groupSize(it.name) >= 2 ? `  ·  [B] bake-off ×${groupSize(it.name)}` : (it.pair ? `  ·  [V] compare with ${it.pair}` : "");
+  const peekLine = one ? `\n<span id="peekLine">${one}</span>` : "";
+  $("modalInfo").innerHTML = baseInfo + groupInfo + peekLine;
+  if (peekFullOn) {
+    $("peekPanel").innerHTML = peekFull(p);
+    $("peekPanel").classList.add("show");
+  } else {
+    $("peekPanel").classList.remove("show");
+  }
 }
 
-document.getElementById("mClose").onclick = closeModal;
-document.getElementById("mPrev").onclick = () => { if (curIdx > 0) openModal(curIdx - 1); };
-document.getElementById("mNext").onclick = () => { if (curIdx < videos.length - 1) openModal(curIdx + 1); };
-mKeep.onclick = () => { if (curIdx >= 0) toggleKeep(videos[curIdx].path, curIdx); };
-modal.addEventListener("click", e => { if (e.target === modal) closeModal(); });
+async function mark(patch) {
+  const it = activeCompareItem();
+  if (!it) return;
+  const r = await fetch(`/api/mark/${char}/${it.name}`, {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(patch)
+  });
+  const {entry} = await r.json();
+  Object.assign(it, {keep: false, reject: false, hq: null, note: "", regen: false, stars: 0}, entry);
+  render();
+  if ($("modal").classList.contains("show")) updateModal();
+}
+
+function openModal() {
+  const it = items[active]; if (!it) return;
+  $("modal").classList.add("show");
+  const lbBtn = $("similarBtn");
+  if (pendingSimilar.has(it.name)) {
+    lbBtn.disabled = true; lbBtn.textContent = "queued";
+  } else {
+    lbBtn.disabled = false; lbBtn.textContent = "make similar ×2";
+  }
+  $("similarToast").textContent = "";
+  updateModal();
+}
+function fmtInfo(it) {
+  if (!it) return "";
+  const starStr = it.stars ? ` ${'★'.repeat(it.stars)}` : '';
+  return `${it.name}${starStr} · ${it.keep?'KEEP':''} ${it.reject?'REJECT':''} ${it.hq?'hq='+it.hq:''} ${it.note?'"'+it.note+'"':''}`;
+}
+function paneCls(pane, it, isActive) {
+  pane.classList.toggle("active", isActive);
+  pane.classList.toggle("keep", !!(it && it.keep));
+}
+function updateModal() {
+  const cur = items[active]; if (!cur) return;
+  if (bakeOn && bakeGroup) {
+    $("zoomwrap").style.display = "none";
+    $("compare").classList.remove("show");
+    const names = groupMembers.get(bakeGroup) || [];
+    renderBakeoff(names);
+    const ac = activeCompareItem();
+    $("modalInfo").textContent = `BAKE-OFF ${bakeGroup} (${names.length}) · editing ${ac?ac.name:''} · ←→ switch · B exit`;
+    $("noteInput").value = ac ? (ac.note || "") : "";
+    return;
+  }
+  if (compareOn && cur.pair) {
+    const pair = itemByName(cur.pair);
+    const curIsRefine = /_refine_|_hq_/.test(cur.name);
+    const L = curIsRefine ? pair : cur;
+    const R = curIsRefine ? cur : pair;
+    $("zoomwrap").style.display = "none";
+    $("compare").classList.add("show");
+    $("bakeoff").classList.remove("show");
+    $("imgL").src = L ? `/img/${char}/${L.file}` : "";
+    $("imgR").src = R ? `/img/${char}/${R.file}` : "";
+    $("capL").innerHTML = `<div class="name">${L?L.name:''}</div>original${L?' · '+fmtInfo(L).split(' · ').slice(1).join(' · '):''}`;
+    $("capR").innerHTML = `<div class="name">${R?R.name:''}</div>refine/hq${R?' · '+fmtInfo(R).split(' · ').slice(1).join(' · '):''}`;
+    paneCls($("paneL"), L, compareSide === "L");
+    paneCls($("paneR"), R, compareSide === "R");
+    const ac = activeCompareItem();
+    $("modalInfo").textContent = `COMPARE · editing [${compareSide}] ${ac?ac.name:''} (Tab to switch, V to exit)`;
+    $("noteInput").value = ac ? (ac.note || "") : "";
+  } else {
+    $("zoomwrap").style.display = "";
+    $("compare").classList.remove("show");
+    $("bakeoff").classList.remove("show");
+    resetZoom();
+    $("modalImg").src = `/img/${char}/${cur.file}`;
+    $("modalStars").textContent = cur.stars ? '★'.repeat(cur.stars) : '';
+    $("noteInput").value = cur.note || "";
+    refreshPeek();
+  }
+}
+function closeModal() { $("modal").classList.remove("show"); noteOpen = false; compareOn = false; bakeOn = false; $("compare").classList.remove("show"); $("bakeoff").classList.remove("show"); $("zoomwrap").style.display=""; $("peekPanel").classList.remove("show"); peekFullOn = false; resetZoom(); $("noteInput").blur(); }
+
+// ---- Bake-off grid rendering ----
+function renderBakeoff(names) {
+  const box = $("bakeoff");
+  // Derive a variant label by stripping the shared group prefix
+  const stems = names.map(stemNoCounter);
+  const variantOf = s => s.slice(bakeGroup.length + 1) || "(base)";
+  box.innerHTML = names.map((n, i) => {
+    const it = itemByName(n);
+    if (!it) return "";
+    const variant = variantOf(stemNoCounter(n));
+    const badges = [];
+    if (it.keep) badges.push('<span class="b k">K</span>');
+    if (it.hq) badges.push(`<span class="b hq">${it.hq}</span>`);
+    if (it.note) badges.push('<span class="b n">N</span>');
+    const cls = (i === bakeIdx ? "active " : "") + (it.keep ? "keep " : "") + (it.reject ? "reject " : "");
+    return `
+      <div class="pane ${cls}" data-bi="${i}">
+        <img src="/img/${char}/${it.file}">
+        <div class="cap">
+          <div class="variant">${variant}${badges.length ? '<span class="badges-inline">'+badges.join('')+'</span>' : ''}</div>
+          <div class="peek" id="peek-${i}">loading…</div>
+          ${it.note ? '<div>"'+it.note+'"</div>' : ''}
+        </div>
+      </div>`;
+  }).join("");
+  box.classList.add("show");
+  // Click-to-activate
+  box.querySelectorAll(".pane").forEach(el => {
+    el.onclick = () => {
+      bakeIdx = +el.dataset.bi;
+      updateModal();
+    };
+  });
+  // Lazy fetch peeks for each variant
+  names.forEach(async (n, i) => {
+    const p = await fetchPeek(n);
+    const el = document.getElementById(`peek-${i}`);
+    if (el) el.textContent = peekOneLine(p) || "(no metadata)";
+  });
+  // Scroll active into view
+  const activeEl = box.querySelector(".pane.active");
+  if (activeEl) activeEl.scrollIntoView({inline: "center", block: "nearest"});
+}
+
+// Scroll-to-zoom on the main modal image
+let zoom = 1, panX = 0, panY = 0, dragStart = null;
+function applyZoom() {
+  const img = $("modalImg");
+  img.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+  $("zoomwrap").classList.toggle("zoomed", zoom > 1);
+}
+function resetZoom() { zoom = 1; panX = 0; panY = 0; applyZoom(); }
+$("zoomwrap").addEventListener("wheel", e => {
+  e.preventDefault();
+  const delta = e.deltaY < 0 ? 1.15 : 1/1.15;
+  const newZoom = Math.max(1, Math.min(8, zoom * delta));
+  if (newZoom === zoom) return;
+  // Zoom toward cursor: adjust pan so the pointed-at pixel stays under the cursor
+  const rect = $("zoomwrap").getBoundingClientRect();
+  const cx = e.clientX - rect.left - rect.width / 2;
+  const cy = e.clientY - rect.top - rect.height / 2;
+  const ratio = newZoom / zoom;
+  panX = cx - (cx - panX) * ratio;
+  panY = cy - (cy - panY) * ratio;
+  zoom = newZoom;
+  if (zoom === 1) { panX = 0; panY = 0; }
+  applyZoom();
+}, { passive: false });
+$("zoomwrap").addEventListener("mousedown", e => {
+  if (zoom <= 1) return;
+  dragStart = { x: e.clientX - panX, y: e.clientY - panY };
+  $("zoomwrap").classList.add("dragging");
+  e.preventDefault();
+});
+window.addEventListener("mousemove", e => {
+  if (!dragStart) return;
+  panX = e.clientX - dragStart.x;
+  panY = e.clientY - dragStart.y;
+  applyZoom();
+});
+window.addEventListener("mouseup", () => { dragStart = null; $("zoomwrap").classList.remove("dragging"); });
+$("zoomwrap").addEventListener("dblclick", () => resetZoom());
+
+function step(d) {
+  const view = filtered();
+  const pos = view.findIndex(v => v.i === active);
+  const next = view[Math.max(0, Math.min(view.length-1, pos+d))];
+  if (next) { active = next.i; render(); if ($("modal").classList.contains("show")) updateModal(); }
+}
+function cols() {
+  const g = $("grid");
+  const style = getComputedStyle(g);
+  return style.gridTemplateColumns.split(" ").length || 1;
+}
+
+function bakeStep(d) {
+  if (!bakeOn || !bakeGroup) return;
+  const names = groupMembers.get(bakeGroup) || [];
+  if (!names.length) return;
+  bakeIdx = (bakeIdx + d + names.length) % names.length;
+  updateModal();
+}
+
+function markTarget() {
+  // Who gets Z/X/1/2/3 when pressed?
+  if (bakeOn) return activeCompareItem();
+  if (compareOn) return activeCompareItem();
+  return items[active];
+}
+
+async function markAt(patch) {
+  const it = markTarget();
+  if (!it) return;
+  const r = await fetch(`/api/mark/${char}/${it.name}`, {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(patch)
+  });
+  const {entry} = await r.json();
+  Object.assign(it, {keep: false, reject: false, hq: null, note: "", regen: false, stars: 0}, entry);
+  render();
+  if ($("modal").classList.contains("show")) updateModal();
+}
+
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape") closeModal();
-  else if (modal.classList.contains("show")) {
-    if (e.key === "ArrowLeft" && curIdx > 0) openModal(curIdx - 1);
-    else if (e.key === "ArrowRight" && curIdx < videos.length - 1) openModal(curIdx + 1);
-    else if (e.key === "k" || e.key === "K") { if (curIdx >= 0) toggleKeep(videos[curIdx].path, curIdx); }
+  if (noteOpen) {
+    if (e.key === "Enter") { markAt({note: $("noteInput").value}); noteOpen = false; $("noteInput").blur(); }
+    else if (e.key === "Escape") { noteOpen = false; $("noteInput").blur(); }
+    return;
   }
+  if (e.target.tagName === "SELECT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT") return;
+  const k = e.key.toLowerCase();
+  const tgt = markTarget();
+  if (k === "z") markAt({keep: !tgt?.keep, reject: false});
+  else if (k === "x") markAt({reject: !tgt?.reject, keep: false});
+  else if (k === "r") markAt({regen: !tgt?.regen});
+  else if (k === "1") markAt({hq: tgt?.hq === "face" ? null : "face"});
+  else if (k === "2") markAt({hq: tgt?.hq === "hand-cock" ? null : "hand-cock"});
+  else if (k === "3") markAt({hq: tgt?.hq === "full-2pass" ? null : "full-2pass"});
+  else if (k === "s") { if ($("modal").classList.contains("show")) makeSimilar(); }
+  else if (k === "p") { if ($("modal").classList.contains("show")) redoPag(); }
+  else if (k === "c") { if (!$("modal").classList.contains("show")) openModal(); noteOpen = true; $("noteInput").focus(); $("noteInput").select(); e.preventDefault(); }
+  else if (e.key === "ArrowRight") { e.preventDefault(); if (bakeOn) bakeStep(1); else step(1); }
+  else if (e.key === "ArrowLeft")  { e.preventDefault(); if (bakeOn) bakeStep(-1); else step(-1); }
+  else if (e.key === "ArrowDown")  { e.preventDefault(); if (!bakeOn) step(cols()); }
+  else if (e.key === "ArrowUp")    { e.preventDefault(); if (!bakeOn) step(-cols()); }
+  else if (k === "v") {
+    if (bakeOn) return; // don't mix with bake-off
+    const cur = items[active];
+    if (cur && cur.pair) {
+      if (!$("modal").classList.contains("show")) openModal();
+      compareOn = !compareOn;
+      compareSide = "R";
+      updateModal();
+    }
+  }
+  else if (k === "b") {
+    const cur = items[active];
+    if (!cur) return;
+    const g = groupOf(cur.name);
+    if (!g) return;
+    if (!$("modal").classList.contains("show")) openModal();
+    bakeOn = !bakeOn;
+    if (bakeOn) {
+      bakeGroup = g;
+      const names = groupMembers.get(g) || [];
+      bakeIdx = Math.max(0, names.indexOf(cur.name));
+      compareOn = false;
+    } else {
+      bakeGroup = null;
+    }
+    updateModal();
+  }
+  else if (e.key === " ") {
+    e.preventDefault();
+    const cur = markTarget();
+    markAt({stars: ((cur?.stars || 0) + 1) % 4});
+  }
+  else if (k === "a") {
+    if (!$("animateOverlay").classList.contains("show")) openAnimate();
+  }
+  else if (k === "u") {
+    const it = items[active]; if (!it) return;
+    uploadToCivitai(it);
+  }
+  else if (k === "i") {
+    if (!$("modal").classList.contains("show")) openModal();
+    peekFullOn = !peekFullOn;
+    refreshPeek();
+  }
+  else if (e.key === "Tab" && compareOn) { e.preventDefault(); compareSide = compareSide === "L" ? "R" : "L"; updateModal(); }
+  else if (e.key === "Enter") openModal();
+  else if (e.key === "Escape") closeModal();
 });
 
-// ── batch download keepers ────────────────────────────────
-document.getElementById("dlAllBtn").onclick = async () => {
-  let url = `/api/videos?sort=newest&filter=keepers`;
-  if (curFolder) url += `&folder=${encodeURIComponent(curFolder)}`;
-  const r = await fetch(url);
-  const vids = await r.json();
-  if (!vids.length) { alert("No keepers found."); return; }
-  for (const v of vids) {
-    const a = document.createElement("a");
-    a.href = `/download/${v.path}`;
-    a.download = v.filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    await new Promise(res => setTimeout(res, 400));
+// Click pane to switch active side in compare
+["paneL","paneR"].forEach(id => {
+  $(id).addEventListener("click", () => { if (compareOn) { compareSide = $(id).dataset.side; updateModal(); } });
+});
+
+async function queueSimilarByName(name, btnEl, count = 2) {
+  if (pendingSimilar.has(name)) return;
+  pendingSimilar.add(name);
+  if (btnEl) { btnEl.textContent = "queued"; btnEl.classList.add("queued"); }
+  const lbBtn = $("similarBtn");
+  if ($("modal").classList.contains("show") && items[active] && items[active].name === name) {
+    lbBtn.disabled = true; lbBtn.textContent = "queued";
   }
+  try {
+    const r = await fetch(`/api/make_similar/${char}/${name}?count=${count}`, {method: "POST"});
+    const data = await r.json();
+    if (!data.ok) {
+      pendingSimilar.delete(name);
+      if (btnEl) { btnEl.textContent = "similar"; btnEl.classList.remove("queued"); }
+    }
+  } catch(e) {
+    pendingSimilar.delete(name);
+    if (btnEl) { btnEl.textContent = "similar"; btnEl.classList.remove("queued"); }
+  }
+}
+function makeSimilar() {
+  const it = items[active]; if (!it) return;
+  const cardBtn = $("grid").querySelector(`.similar-card-btn[data-name="${it.name}"]`);
+  queueSimilarByName(it.name, cardBtn);
+}
+async function queueHqByName(name, btnEl) {
+  if (btnEl) { btnEl.textContent = "▲HQ…"; btnEl.classList.add("queued"); btnEl.disabled = true; }
+  try {
+    const r = await fetch(`/api/queue_hq/${char}/${name}`, {method: "POST"});
+    const data = await r.json();
+    if (data.ok) {
+      if (btnEl) btnEl.textContent = "queued ✓";
+      $("similarToast") && ($("similarToast").textContent = `▲HQ queued → ${data.num}`);
+    } else {
+      if (btnEl) { btnEl.textContent = "▲HQ"; btnEl.classList.remove("queued"); btnEl.disabled = false; }
+      alert(data.error || "HQ queue failed");
+    }
+  } catch(err) {
+    if (btnEl) { btnEl.textContent = "▲HQ"; btnEl.classList.remove("queued"); btnEl.disabled = false; }
+  }
+}
+
+async function uploadToCivitai(it) {
+  // Download the PNG (browser triggers save dialog)
+  const a = document.createElement("a");
+  a.href = `/api/download/${char}/${it.file}`;
+  a.download = it.file;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  // Open CivitAI create-post page
+  window.open("https://civitai.com/posts/create", "_blank");
+
+  // Mark as sent to CivitAI
+  await fetch(`/api/mark/${char}/${it.name}`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({civitai: true})
+  });
+
+  // Update local state and re-render badge
+  it.civitai = true;
+  render();
+
+  $("similarToast").textContent = `↑ Downloading ${it.file} + opening CivitAI…`;
+  setTimeout(() => { $("similarToast").textContent = ""; }, 4000);
+}
+
+let pagPending = false;
+async function redoPag() {
+  const it = items[active]; if (!it) return;
+  if (pagPending) return;
+  const btn = $("pagBtn");
+  pagPending = true;
+  btn.disabled = true; btn.textContent = "queuing…";
+  try {
+    const r = await fetch(`/api/redo_pag/${char}/${it.name}`, {method: "POST"});
+    const data = await r.json();
+    if (data.ok) {
+      btn.textContent = "queued!";
+      $("similarToast").textContent = `PAG queued (seed …${String(data.seed).slice(-6)})`;
+      setTimeout(() => { $("similarToast").textContent = ""; }, 5000);
+    } else {
+      btn.textContent = data.error || "error";
+      pagPending = false;
+      setTimeout(() => { btn.disabled = false; btn.textContent = "PAG redo"; pagPending = false; }, 3000);
+      return;
+    }
+  } catch(e) {
+    btn.textContent = "error";
+    pagPending = false;
+  }
+  setTimeout(() => { btn.disabled = false; btn.textContent = "PAG redo"; pagPending = false; }, 8000);
+}
+
+// ── Animate ──────────────────────────────────────────────────────────────────
+let animatePollTimer = null;
+const animatePromptStore = new Map(); // key: "char/name" → {desc, full}
+
+function animateStoreKey() {
+  const it = items[active]; if (!it) return null;
+  return `${char}/${it.name}`;
+}
+function animateSavePrompts() {
+  const k = animateStoreKey(); if (!k) return;
+  animatePromptStore.set(k, {
+    desc: $("animatePrompt").value,
+    full: $("animatePromptFull").value,
+  });
+}
+
+function snap16(n) { return Math.max(16, Math.round(n / 16) * 16); }
+
+function buildResOptions(srcW, srcH, selEl) {
+  selEl.innerHTML = "";
+  const maxDim = 960;
+  const scale = Math.min(1, maxDim / Math.max(srcW, srcH));
+  const bases = [1, 0.5, 0.25].map(f => ({
+    w: snap16(srcW * scale * f),
+    h: snap16(srcH * scale * f),
+    label: f === 1 ? "Full" : f === 0.5 ? "Half" : "Quarter",
+  })).filter(o => o.w >= 256 && o.h >= 256);
+  for (const o of bases) {
+    const opt = document.createElement("option");
+    opt.value = `${o.w}x${o.h}`;
+    opt.textContent = `${o.label}  ${o.w}×${o.h}`;
+    if (o.label === "Full") opt.selected = true;
+    selEl.appendChild(opt);
+  }
+}
+
+async function openAnimate() {
+  const it = items[active]; if (!it) return;
+  $("animateImgName").textContent = `${char} / ${it.name}`;
+  // Restore saved prompts for this image (don't wipe on reopen)
+  const saved = animatePromptStore.get(`${char}/${it.name}`) || {};
+  $("animatePrompt").value = saved.desc || "";
+  $("animatePromptFull").value = saved.full || "";
+  $("animatePlanStatus").textContent = "";
+  $("animateStatus").textContent = "";
+  $("animateGoBtn").disabled = false;
+  $("animatePlanBtn").disabled = false;
+  $("animateGoBtn").textContent = "🎬 Generate";
+  // build proportional resolution options
+  try {
+    const r = await fetch(`/api/imgsize/${char}/${it.name}`);
+    const d = await r.json();
+    if (d.width) buildResOptions(d.width, d.height, $("animateRes"));
+  } catch(e) {}
+  $("animateOverlay").classList.add("show");
+  const focusEl = saved.full ? $("animatePromptFull") : $("animatePrompt");
+  focusEl.focus();
+  focusEl.setSelectionRange(focusEl.value.length, focusEl.value.length);
+}
+
+function closeAnimate() {
+  animateSavePrompts();
+  $("animateOverlay").classList.remove("show");
+  clearInterval(animatePollTimer);
+}
+
+function animateToast(html, sticky = false) {
+  $("similarToast").innerHTML = html;
+  if (!sticky) setTimeout(() => { $("similarToast").innerHTML = ""; }, 8000);
+}
+
+async function planAnimate() {
+  const it = items[active]; if (!it) return;
+  const desc = $("animatePrompt").value.trim();
+  if (!desc) { $("animatePlanStatus").textContent = "Enter a description first."; return; }
+  $("animatePlanBtn").disabled = true;
+  $("animatePlanStatus").textContent = "⟳ Planning…";
+  try {
+    const r = await fetch("/api/plan_prompt", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({character: char, name: it.name, prompt: desc}),
+    });
+    const d = await r.json();
+    if (d.error) { $("animatePlanStatus").textContent = "Error: " + d.error; return; }
+    const p = d.params;
+    $("animatePromptFull").value = p.positive_prompt || "";
+    if (p.width && p.height) {
+      const opt = `${p.width}x${p.height}`;
+      const sel = $("animateRes");
+      for (const o of sel.options) { if (o.value === opt) { sel.value = opt; break; } }
+    }
+    if (p.length) {
+      const sel = $("animateLen");
+      for (const o of sel.options) { if (parseInt(o.value) === p.length) { sel.value = p.length; break; } }
+    }
+    if (p.fast_mode !== undefined) $("animateMode").value = p.fast_mode ? "fast" : "q8";
+    $("animatePlanStatus").textContent = "✓ Ready — review and generate";
+    animateSavePrompts();
+  } catch(e) {
+    $("animatePlanStatus").textContent = "Error: " + e.message;
+  } finally {
+    $("animatePlanBtn").disabled = false;
+  }
+}
+
+async function submitAnimate() {
+  const it = items[active]; if (!it) return;
+  const prompt = ($("animatePromptFull").value || $("animatePrompt").value).trim();
+  if (!prompt) { $("animateStatus").textContent = "Enter a prompt or use Plan with AI first."; return; }
+
+  const [w, h] = $("animateRes").value.split("x").map(Number);
+  const length = parseInt($("animateLen").value);
+  const mode = $("animateMode").value;
+
+  $("animateGoBtn").disabled = true;
+  $("animateGoBtn").textContent = "Uploading…";
+  $("animateStatus").textContent = "Uploading…";
+
+  let data;
+  try {
+    const r = await fetch("/api/animate", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({character: char, name: it.name, prompt, width: w, height: h, length, mode}),
+    });
+    data = await r.json();
+  } catch(e) {
+    $("animateStatus").textContent = "Error: " + e.message;
+    $("animateGoBtn").disabled = false; $("animateGoBtn").textContent = "🎬 Generate";
+    return;
+  }
+
+  if (data.error) {
+    $("animateStatus").textContent = "Error: " + data.error;
+    $("animateGoBtn").disabled = false; $("animateGoBtn").textContent = "🎬 Generate";
+    return;
+  }
+
+  // Success — close overlay, clear stored prompt, show toast
+  const k = animateStoreKey();
+  if (k) animatePromptStore.delete(k);
+  closeAnimate();
+  animateToast(`⏳ pending AI review — <a href="/videos" style="color:#7af">videos →</a>`, true);
+}
+
+$("animatePrompt").addEventListener("input", animateSavePrompts);
+$("animatePromptFull").addEventListener("input", animateSavePrompts);
+
+$("charSel").onchange = e => { char = e.target.value; loadItems(); };
+$("sortSel").onchange = loadItems;
+$("filterSel").onchange = render;
+$("exportBtn").onclick = async () => {
+  const r = await fetch(`/api/export/${char}`);
+  $("exportText").value = await r.text();
+  $("exportBox").classList.add("show");
+};
+$("submitBtn").onclick = async () => {
+  const r = await fetch(`/api/submit/${char}`, {method: "POST"});
+  const {path, keepers, deleted, folder_removed} = await r.json();
+  $("submitStat").textContent = `submitted ${keepers} keepers, deleted ${deleted} rejects${folder_removed ? " · folder removed" : ""}`;
+  if (folder_removed) { await loadChars(); } else { loadItems(); }
+  setTimeout(() => $("submitStat").textContent = "", 6000);
 };
 
-// ── controls ─────────────────────────────────────────────
-document.getElementById("filterSel").onchange = e => { curFilter = e.target.value; loadVideos(); };
-document.getElementById("sortSel").onchange = e => { curSort = e.target.value; loadVideos(); };
+let _lastQueueTotal = -1;
+async function pollQueue() {
+  try {
+    const r = await fetch('/api/comfy_queue');
+    const d = await r.json();
+    const el = $('comfyQ');
+    if (d.offline) { el.textContent = 'ComfyUI offline'; el.style.color = '#c44'; }
+    else if (d.total === 0) { el.textContent = 'queue empty'; el.style.color = '#4c4'; }
+    else { el.textContent = `rendering ${d.running} + ${d.pending} queued`; el.style.color = '#fc4'; }
+    // Auto-reload grid when queue drains (new images landed)
+    if (_lastQueueTotal > 0 && d.total === 0) loadItems();
+    _lastQueueTotal = d.total;
+  } catch(e) {}
+}
 
-// ── init ─────────────────────────────────────────────────
-loadFolders();
-loadVideos();
-setInterval(refresh, 30000);
+// ---- ComfyUI live preview + progress (server-side proxy poll) ----
+let _lastPreviewB64 = null, _hideTimer = null, _isShowing = false;
+function _showNR() {
+  if (_hideTimer) { clearTimeout(_hideTimer); _hideTimer = null; }
+  $('nowRendering').style.display = 'block';
+  _isShowing = true;
+}
+function _scheduleHideNR() {
+  if (!_isShowing || _hideTimer) return;
+  $('progressFill').style.width = '100%';
+  $('progressText').textContent = 'done';
+  _hideTimer = setTimeout(() => {
+    $('nowRendering').style.display = 'none';
+    _lastPreviewB64 = null; _hideTimer = null; _isShowing = false;
+  }, 2500);
+}
+async function pollComfyPreview() {
+  try {
+    const r = await fetch('/api/comfy_preview');
+    const d = await r.json();
+    if (d.rendering) {
+      if (d.img && d.img !== _lastPreviewB64) {
+        _lastPreviewB64 = d.img;
+        $('previewImg').src = 'data:image/jpeg;base64,' + d.img;
+        _showNR();
+      }
+      if (d.step != null && d.max != null) {
+        const pct = d.max > 0 ? Math.round(d.step / d.max * 100) : 0;
+        $('progressFill').style.width = pct + '%';
+        $('progressText').textContent = `step ${d.step} / ${d.max}`;
+        _showNR();
+      }
+    } else {
+      _scheduleHideNR();
+    }
+  } catch(e) {}
+}
+setInterval(pollComfyPreview, 300);
+
+loadChars();
+pollQueue();
+setInterval(pollQueue, 5000);
 </script>
 </body>
 </html>

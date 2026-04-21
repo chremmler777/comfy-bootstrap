@@ -15,6 +15,10 @@ loras/wan https://civitai.red/api/download/models/2265946?type=Model&format=Safe
 loras/wan https://civitai.red/api/download/models/2266454?type=Model&format=SafeTensor Wan_BottomTS_Low.safetensors
 loras/wan https://civitai.red/api/download/models/2484657?type=Model&format=SafeTensor K3NK_4llinOne_High.safetensors
 loras/wan https://civitai.red/api/download/models/2538990?type=Model&format=SafeTensor K3NK_4llinOne_Low.safetensors
+loras/wan https://civitai.red/api/download/models/2191217?type=Model&format=SafeTensor Bouncing_Boobs_High.safetensors
+loras/wan https://civitai.red/api/download/models/2191270?type=Model&format=SafeTensor Bouncing_Boobs_Low.safetensors
+loras/wan https://civitai.red/api/download/models/2840416?type=Model&format=SafeTensor WalkToward_High.safetensors
+loras/wan https://civitai.red/api/download/models/2840460?type=Model&format=SafeTensor WalkToward_Low.safetensors
 
 # WAN LightX2V LoRAs (4-step fast sampling - HuggingFace)
 loras/wan https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors wan_lightx2v_4steps_low_noise.safetensors
@@ -33,6 +37,9 @@ ultralytics/bbox https://huggingface.co/ddoc/adtmo/resolve/3b19f8e9add520abf74b6
 ultralytics/bbox https://huggingface.co/ashllay/YOLO_Models/resolve/e07b01219ff1807e1885015f439d788b038f49bd/bbox/Eyeful_v2-Paired.pt Eyeful_v2-Paired.pt
 ultralytics/bbox https://huggingface.co/Bingsu/adetailer/resolve/main/face_yolov8m.pt face_yolov8m.pt
 ultralytics/bbox https://huggingface.co/Bingsu/adetailer/resolve/main/hand_yolov8s.pt hand_yolov8s.pt
+
+# RIFE frame interpolation (for smooth video output)
+vfi https://huggingface.co/Fannovel16/Practical_RIFE/resolve/main/flownet.pkl flownet.pkl
 
 # Upscalers
 upscale_models https://huggingface.co/FacehugmanIII/4x_foolhardy_Remacri/resolve/main/4x_foolhardy_Remacri.pth 4x_foolhardy_Remacri.pth

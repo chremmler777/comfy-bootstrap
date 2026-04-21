@@ -1,326 +1,965 @@
 #!/usr/bin/env python3
-"""WAN video keeper web — browse, star, download ComfyUI output videos."""
+"""Keeper web - mark favorites, tag HQ pass type, export notes for Claude."""
+import base64
 import json
 import os
+import random
+import re
 import subprocess
-import tempfile
+import sys
+import threading
 import time
-import urllib.request
+import uuid
 from pathlib import Path
 from flask import Flask, jsonify, request, send_file, send_from_directory
+from PIL import Image
 
-OUTPUT_ROOT = Path(os.environ.get("OUTPUT_ROOT", "/workspace/ComfyUI/output"))
-DATA_DIR    = Path(os.environ.get("DATA_DIR", "/workspace/comfyui2/data"))
-COMFY_URL   = os.environ.get("COMFY_URL", "http://localhost:8188")
-PORT        = int(os.environ.get("PORT", "8189"))
+OUTPUT_ROOT = Path("/home/chremmler/ComfyUI/output/comfy")
+DATA_DIR = Path(__file__).parent / "data"
+VIDEO_DIR = Path("/home/chremmler/ComfyUI/output/videos")
+RUNPOD_COMFY = os.environ.get("RUNPOD_COMFY", "https://8hx3zmtogetq6s-8188.proxy.runpod.net")
+RUNPOD_POD_ID = os.environ.get("RUNPOD_POD_ID", "")
+RUNPOD_API_KEY = os.environ.get("RUNPOD_API_KEY", "")
+DATA_DIR.mkdir(exist_ok=True)
+VIDEO_DIR.mkdir(parents=True, exist_ok=True)
+(DATA_DIR / "video_cache").mkdir(exist_ok=True)
+(DATA_DIR / "video_thumbs").mkdir(exist_ok=True)
 
-DATA_DIR.mkdir(parents=True, exist_ok=True)
-(DATA_DIR / "thumbs").mkdir(exist_ok=True)
+# In-memory animate job log: list of dicts, newest first
+_animate_jobs: list[dict] = []
+_animate_jobs_lock = threading.Lock()
+
+
+def _parse_mode(mode_str, fast_mode_fallback=True) -> tuple[bool, int]:
+    """Parse mode string ('fast','q10','q20','q30') → (fast_mode, quality_steps)."""
+    if mode_str is None:
+        return (bool(fast_mode_fallback), 20)
+    if mode_str == "fast":
+        return (True, 6)
+    if str(mode_str).startswith("q"):
+        try:
+            return (False, int(str(mode_str)[1:]))
+        except ValueError:
+            pass
+    return (bool(fast_mode_fallback), 20)
 
 app = Flask(__name__, static_folder="static")
 
 
-def _safe_key(folder_key: str) -> str:
-    return folder_key.replace("/", "__").replace("\\", "__") or "__root__"
+def data_file(character: str) -> Path:
+    return DATA_DIR / f"{character}.json"
 
 
-def marks_file(folder_key: str) -> Path:
-    return DATA_DIR / f"{_safe_key(folder_key)}.json"
+def load_marks(character: str) -> dict:
+    f = data_file(character)
+    if f.exists():
+        return json.loads(f.read_text())
+    return {}
 
 
-def load_marks(folder_key: str) -> dict:
-    f = marks_file(folder_key)
-    return json.loads(f.read_text()) if f.exists() else {}
-
-
-def save_marks(folder_key: str, marks: dict) -> None:
-    marks_file(folder_key).write_text(json.dumps(marks, indent=2, sort_keys=True))
-
-
-def get_folder_key(path: Path) -> str:
-    rel = path.parent.relative_to(OUTPUT_ROOT)
-    return str(rel) if str(rel) != "." else ""
-
-
-def scan_videos() -> list[Path]:
-    if not OUTPUT_ROOT.exists():
-        return []
-    files = [f for f in OUTPUT_ROOT.rglob("*.mp4") if f.is_file()]
-    files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
-    return files
+def save_marks(character: str, marks: dict) -> None:
+    data_file(character).write_text(json.dumps(marks, indent=2, sort_keys=True))
 
 
 @app.get("/")
 def index():
-    return send_from_directory("static", "index.html")
+    resp = send_from_directory("static", "index.html")
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
 
 
-@app.get("/animate")
-def animate_page():
-    return send_from_directory("static", "animate.html")
+@app.get("/latest")
+def latest_page():
+    resp = send_from_directory("static", "latest.html")
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
 
 
-@app.get("/api/folders")
-def folders():
-    seen: dict[str, int] = {}
-    for f in scan_videos():
-        fk = get_folder_key(f)
-        seen[fk] = seen.get(fk, 0) + 1
-    total = sum(seen.values())
-    result = [{"folder": "", "label": "All Videos", "count": total}]
-    result += [{"folder": k, "label": k, "count": v} for k, v in sorted(seen.items())]
-    return jsonify(result)
+@app.get("/api/latest")
+def latest():
+    if not OUTPUT_ROOT.exists():
+        return jsonify([])
+    limit = int(request.args.get("limit", "60"))
+    all_files = []
+    for p in OUTPUT_ROOT.iterdir():
+        if not p.is_dir():
+            continue
+        char = p.name
+        marks = load_marks(char)
+        hq_done = hq_rendered_set(char, p)
+        for f in p.glob("*.png"):
+            st = f.stat()
+            mark = marks.get(f.stem, {})
+            all_files.append({
+                "character": char,
+                "name": f.stem,
+                "file": f.name,
+                "mtime": st.st_mtime,
+                "size": st.st_size,
+                "keep": mark.get("keep", False),
+                "reject": mark.get("reject", False),
+                "hq": mark.get("hq"),
+                "note": mark.get("note", ""),
+                "regen": mark.get("regen", False),
+                "hq_done": f.stem in hq_done,
+                "civitai": mark.get("civitai", False),
+                "stars": mark.get("stars", 0),
+            })
+    all_files.sort(key=lambda x: x["mtime"], reverse=True)
+    return jsonify(all_files[:limit])
 
 
-@app.get("/api/videos")
-def videos():
-    folder = request.args.get("folder")
+@app.get("/api/characters")
+def characters():
+    if not OUTPUT_ROOT.exists():
+        return jsonify([])
+    chars = []
+    for p in sorted(OUTPUT_ROOT.iterdir()):
+        if p.is_dir():
+            png_count = sum(1 for _ in p.glob("*.png"))
+            if png_count > 0:
+                chars.append({"name": p.name, "count": png_count})
+    return jsonify(chars)
+
+
+REFINE_RE = re.compile(r"_(refine|hq)_(\d+)_")
+
+
+def hq_rendered_set(character: str, char_dir: Path) -> set[str]:
+    """Return set of source-stems whose HQ pass has already been rendered on disk.
+
+    Convention: `<char>_<N>_` → `<char>_hq_<N>_00001_` (plus variants like
+    `<char>_<tag>_<N>_` → `<char>_hq_<tag>_<N>_` or `<char>_hq_<N>_`).
+    This is a heuristic — we just check for any HQ file whose numeric suffix
+    matches the source's numeric suffix, per-character.
+    """
+    done: set[str] = set()
+    if not char_dir.is_dir():
+        return done
+    plain_re = re.compile(rf"^{re.escape(character)}_0*(\d+)_?$")
+    # Collect numeric IDs that have an HQ render on disk.
+    hq_ids: set[str] = set()
+    hq_tag_ids: set[tuple[str, str]] = set()  # (tag, id)
+    hq_re_plain = re.compile(rf"^{re.escape(character)}_hq_0*(\d+)_\d+_?$")
+    hq_re_tag = re.compile(rf"^{re.escape(character)}_hq_([a-zA-Z][a-zA-Z0-9_]*?)_0*(\d+)_\d+_?$")
+    for f in char_dir.glob(f"{character}_hq_*.png"):
+        m = hq_re_tag.match(f.stem)
+        if m:
+            hq_tag_ids.add((m.group(1).lower(), m.group(2)))
+            continue
+        m = hq_re_plain.match(f.stem)
+        if m:
+            hq_ids.add(m.group(1))
+    # For every source file, check if its numeric id has a matching HQ.
+    for f in char_dir.glob("*.png"):
+        stem = f.stem
+        stem_nt = stem.rstrip("_")
+        m = plain_re.match(stem)
+        if m and m.group(1) in hq_ids:
+            done.add(stem)
+            continue
+        # Tag variants: e.g. jade_test_00053 → hq=jade_hq_53 or hq=jade_hq_test_53
+        parts = stem_nt.split("_")
+        if len(parts) >= 3 and parts[0] == character and parts[-1].isdigit():
+            num = parts[-1].lstrip("0") or "0"
+            if num in hq_ids:
+                done.add(stem)
+                continue
+            tag = "_".join(parts[1:-1]).lower()
+            if tag and (tag, num) in hq_tag_ids:
+                done.add(stem)
+                continue
+    return done
+
+
+@app.get("/api/hq_status/<character>")
+def hq_status(character: str):
+    d = OUTPUT_ROOT / character
+    return jsonify(sorted(hq_rendered_set(character, d)))
+
+
+@app.get("/api/images/<character>")
+def images(character: str):
+    d = OUTPUT_ROOT / character
+    if not d.is_dir():
+        return jsonify([]), 404
     sort = request.args.get("sort", "newest")
-    keepers_only = request.args.get("filter") == "keepers"
-
-    files = scan_videos()
-
-    if folder:
-        target = OUTPUT_ROOT / folder
-        files = [f for f in files if f == target or str(f).startswith(str(target) + "/") or f.parent == target]
-
-    if sort == "oldest":
-        files.sort(key=lambda p: p.stat().st_mtime)
-    elif sort == "name":
+    files = list(d.glob("*.png"))
+    # Map source number -> list of refine/hq file stems (e.g. "113" -> [aria_refine_113_00001, ...])
+    refine_by_num: dict[str, list[str]] = {}
+    for f in files:
+        m = REFINE_RE.search(f.stem)
+        if m:
+            num = m.group(2).lstrip("0") or "0"
+            refine_by_num.setdefault(num, []).append(f.stem)
+    # Map refine stem -> original stem (look up original by number)
+    orig_by_num: dict[str, str] = {}
+    plain_re = re.compile(rf"^{re.escape(character)}_0*(\d+)_$")
+    for f in files:
+        m = plain_re.match(f.stem)
+        if m:
+            orig_by_num[m.group(1).lstrip("0") or "0"] = f.stem
+    if sort == "newest":
+        files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+    else:
         files.sort(key=lambda p: p.name)
-
-    marks_cache: dict[str, dict] = {}
+    marks = load_marks(character)
+    hq_done = hq_rendered_set(character, d)
     out = []
     for f in files:
-        fk = get_folder_key(f)
-        if fk not in marks_cache:
-            marks_cache[fk] = load_marks(fk)
-        mark = marks_cache[fk].get(f.stem, {})
-        if keepers_only and not mark.get("keep"):
-            continue
         st = f.stat()
+        mark = marks.get(f.stem, {})
+        stem = f.stem
+        is_refined = False
+        pair = None
+        # Is this a refine/hq output? -> pair is the original
+        rm = REFINE_RE.search(stem)
+        if rm:
+            num = rm.group(2).lstrip("0") or "0"
+            pair = orig_by_num.get(num)
+        else:
+            # Plain image — check if it has refine siblings
+            pm = plain_re.match(stem)
+            if pm:
+                num = pm.group(1).lstrip("0") or "0"
+                siblings = refine_by_num.get(num, [])
+                if siblings:
+                    is_refined = True
+                    pair = sorted(siblings)[0]
         out.append({
-            "path": str(f.relative_to(OUTPUT_ROOT)),
-            "name": f.stem,
-            "filename": f.name,
-            "folder": fk,
+            "name": stem,
+            "file": f.name,
             "mtime": st.st_mtime,
             "size": st.st_size,
             "keep": mark.get("keep", False),
-            "stars": mark.get("stars", 0),
+            "reject": mark.get("reject", False),
+            "hq": mark.get("hq"),
             "note": mark.get("note", ""),
+            "regen": mark.get("regen", False),
+            "hq_done": stem in hq_done,
+            "refined": is_refined,
+            "pair": pair,
+            "civitai": mark.get("civitai", False),
+            "stars": mark.get("stars", 0),
         })
     return jsonify(out)
 
 
-@app.get("/video/<path:filepath>")
-def serve_video(filepath: str):
-    path = OUTPUT_ROOT / filepath
+@app.get("/img/<character>/<path:filename>")
+def serve_img(character: str, filename: str):
+    path = OUTPUT_ROOT / character / filename
     if not path.is_file():
         return "not found", 404
-    return send_file(path, mimetype="video/mp4", conditional=True)
+    return send_file(path)
 
 
-@app.get("/thumb/<path:filepath>")
-def thumbnail(filepath: str):
-    path = OUTPUT_ROOT / filepath
+@app.get("/api/download/<character>/<path:filename>")
+def download_img(character: str, filename: str):
+    path = OUTPUT_ROOT / character / filename
     if not path.is_file():
         return "not found", 404
-    safe = filepath.replace("/", "__") + ".jpg"
-    thumb = DATA_DIR / "thumbs" / safe
-    if not thumb.exists():
+    return send_file(path, as_attachment=True, download_name=filename)
+
+
+@app.post("/api/mark/<character>/<name>")
+def mark(character: str, name: str):
+    body = request.get_json(force=True) or {}
+    marks = load_marks(character)
+    entry = marks.get(name, {})
+    for k in ("keep", "reject", "hq", "note", "regen", "civitai", "stars"):
+        if k in body:
+            entry[k] = body[k]
+    # clean up empty/zero
+    entry = {k: v for k, v in entry.items() if v not in (False, None, "", 0)}
+    if entry:
+        marks[name] = entry
+    else:
+        marks.pop(name, None)
+    save_marks(character, marks)
+    return jsonify({"ok": True, "entry": entry})
+
+
+def build_export(character: str) -> str:
+    marks = load_marks(character)
+    keepers = sorted(k for k, v in marks.items() if v.get("keep"))
+    hq_groups = {}
+    for k, v in marks.items():
+        if v.get("keep") and v.get("hq"):
+            hq_groups.setdefault(v["hq"], []).append(k)
+    # Regen-flagged notes get their own AUTO-REGEN section for claude to pick up.
+    autoregen = sorted(k for k, v in marks.items() if v.get("regen") and v.get("note"))
+    noted = sorted(
+        k for k, v in marks.items()
+        if v.get("note") and not v.get("keep") and not v.get("reject") and not v.get("regen")
+    )
+    rejected_noted = sorted(k for k, v in marks.items() if v.get("reject") and v.get("note"))
+    lines = [
+        f"# {character} — {len(keepers)} keepers, {len(autoregen)} auto-regen, {len(noted)} refine, {len(rejected_noted)} rejected w/ notes",
+        "",
+    ]
+    if keepers:
+        lines.append("## Keepers")
+        for k in keepers:
+            note = marks[k].get("note", "")
+            hq = marks[k].get("hq", "")
+            bits = []
+            if hq:
+                bits.append(f"hq={hq}")
+            if marks[k].get("regen"):
+                bits.append("REGEN")
+            if note:
+                bits.append(note)
+            tail = f" — {', '.join(bits)}" if bits else ""
+            lines.append(f"- {k}{tail}")
+        lines.append("")
+    if autoregen:
+        lines.append("## Refine — AUTO-REGEN (execute immediately)")
+        for k in autoregen:
+            m = marks[k]
+            kept = " [kept]" if m.get("keep") else ""
+            lines.append(f"- {k}{kept} — {m['note']}")
+        lines.append("")
+    if noted:
+        lines.append("## Refine (noted but not kept)")
+        for k in noted:
+            lines.append(f"- {k} — {marks[k]['note']}")
+        lines.append("")
+    if rejected_noted:
+        lines.append("## Rejected — feedback on what went wrong")
+        for k in rejected_noted:
+            lines.append(f"- {k} — {marks[k]['note']}")
+        lines.append("")
+    three_star = sorted(k for k, v in marks.items() if v.get("stars") == 3)
+    if three_star:
+        lines.append("## ★★★ References")
+        for k in three_star:
+            note = marks[k].get("note", "")
+            lines.append(f"- {k}" + (f" — {note}" if note else ""))
+        lines.append("")
+    if hq_groups:
+        lines.append("## HQ Pass Queue")
+        for hq_type, names in sorted(hq_groups.items()):
+            lines.append(f"### {hq_type}")
+            for n in sorted(names):
+                lines.append(f"- {n}")
+    return "\n".join(lines)
+
+
+@app.get("/api/export/<character>")
+def export(character: str):
+    return build_export(character), 200, {"Content-Type": "text/plain; charset=utf-8"}
+
+
+@app.post("/api/submit/<character>")
+def submit(character: str):
+    body = build_export(character)
+    path = DATA_DIR / f"{character}_submit.md"
+    path.write_text(body)
+    marks = load_marks(character)
+    keepers = sum(1 for v in marks.values() if v.get("keep"))
+    # delete rejected images from disk, clear their entries
+    char_dir = OUTPUT_ROOT / character
+    deleted = 0
+    remaining = {}
+    for name, entry in marks.items():
+        if entry.get("reject"):
+            png = char_dir / f"{name}.png"
+            if png.is_file():
+                png.unlink()
+                deleted += 1
+        else:
+            remaining[name] = entry
+    save_marks(character, remaining)
+    # If character folder is now empty, remove it
+    folder_removed = False
+    if char_dir.is_dir() and not any(char_dir.iterdir()):
+        char_dir.rmdir()
+        folder_removed = True
+    return jsonify({"ok": True, "path": str(path), "keepers": keepers, "deleted": deleted, "folder_removed": folder_removed})
+
+
+import requests as http_requests
+
+
+@app.get("/api/comfy_queue")
+def comfy_queue():
+    try:
+        r = http_requests.get("http://127.0.0.1:8188/queue", timeout=2)
+        d = r.json()
+        running = len(d.get("queue_running", []))
+        pending = len(d.get("queue_pending", []))
+        return jsonify({"running": running, "pending": pending, "total": running + pending})
+    except Exception:
+        return jsonify({"running": 0, "pending": 0, "total": 0, "offline": True})
+
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from queue_sarah import BASE_WORKFLOW, COCK_MODES, queue_prompt
+from queue_donna import _add_enhanced_nodes
+import copy
+
+
+def extract_prompt_from_png(png_path: Path) -> dict | None:
+    """Read ComfyUI workflow from PNG metadata, return full peek + workflow."""
+    try:
+        img = Image.open(png_path)
+        prompt_json = img.info.get("prompt")
+        if not prompt_json:
+            return None
+        d = json.loads(prompt_json)
+        pos = d.get("6", {}).get("inputs", {}).get("text", "")
+        neg = d.get("7", {}).get("inputs", {}).get("text", "")
+        k1 = d.get("3", {}).get("inputs", {})
+        k2 = d.get("22", {}).get("inputs", {})
+        seed = k1.get("seed", 0)
+        cfg = k1.get("cfg")
+        sampler = k1.get("sampler_name")
+        scheduler = k1.get("scheduler")
+        steps = k1.get("steps")
+        cfg2 = k2.get("cfg") if k2 else None
+        steps2 = k2.get("steps") if k2 else None
+        ckpt = d.get("14", {}).get("inputs", {}).get("ckpt_name")
+        # Detect cock mode from LoRA states
+        lora_stack = d.get("17", {}).get("inputs", {})
+        cock_mode = "erect"  # default
+        active_loras = []
+        if lora_stack:
+            flac = lora_stack.get("lora_15", {})
+            erect = lora_stack.get("lora_14", {})
+            bulge = lora_stack.get("lora_16", {})
+            if isinstance(flac, dict) and flac.get("on"):
+                cock_mode = "flaccid"
+            elif isinstance(bulge, dict) and bulge.get("on"):
+                cock_mode = "bulge"
+            elif isinstance(erect, dict) and erect.get("on"):
+                cock_mode = "erect"
+            # Collect all "on" LoRAs with their strengths
+            for k, v in lora_stack.items():
+                if k.startswith("lora_") and isinstance(v, dict) and v.get("on"):
+                    name = v.get("lora", k)
+                    # shorten filename to basename without .safetensors
+                    if isinstance(name, str):
+                        name = name.rsplit("/", 1)[-1].replace(".safetensors", "")
+                    active_loras.append({
+                        "slot": k,
+                        "name": name,
+                        "strength": v.get("strength", 0),
+                    })
+        # Detect PAG / NegPip nodes by class
+        has_pag = False
+        pag_scale = None
+        pag_block = None
+        has_negpip = False
+        for nid, node in d.items():
+            cls = node.get("class_type", "")
+            if cls == "PerturbedAttention":
+                has_pag = True
+                inp = node.get("inputs", {})
+                pag_scale = inp.get("scale")
+                pag_block = f"{inp.get('unet_block','?')}/{inp.get('unet_block_id','?')}"
+            elif cls == "CLIPNegPip":
+                has_negpip = True
+        return {
+            "positive": pos,
+            "negative": neg,
+            "seed": seed,
+            "cfg": cfg,
+            "cfg2": cfg2,
+            "sampler": sampler,
+            "scheduler": scheduler,
+            "steps": steps,
+            "steps2": steps2,
+            "checkpoint": ckpt.rsplit("/", 1)[-1] if isinstance(ckpt, str) else ckpt,
+            "cock_mode": cock_mode,
+            "loras": active_loras,
+            "has_pag": has_pag,
+            "pag_scale": pag_scale,
+            "pag_block": pag_block,
+            "has_negpip": has_negpip,
+            "workflow": d,
+        }
+    except Exception as e:
+        return None
+
+
+@app.get("/api/peek/<character>/<name>")
+def peek(character: str, name: str):
+    """Workflow peek — returns parsed metadata (no full workflow dict)."""
+    png_path = OUTPUT_ROOT / character / f"{name}.png"
+    if not png_path.is_file():
+        return jsonify({"error": "not found"}), 404
+    info = extract_prompt_from_png(png_path)
+    if not info:
+        return jsonify({"error": "no metadata"}), 400
+    # Strip heavy workflow dict from the response
+    info.pop("workflow", None)
+    return jsonify(info)
+
+
+def rebuild_workflow(orig_workflow: dict, new_seed: int) -> dict:
+    """Clone the original workflow with a new seed."""
+    wf = copy.deepcopy(orig_workflow)
+    wf["3"]["inputs"]["seed"] = new_seed
+    return wf
+
+
+@app.post("/api/make_similar/<character>/<name>")
+def make_similar(character: str, name: str):
+    """Queue 2 new renders with the same prompt but different seeds."""
+    png_path = OUTPUT_ROOT / character / f"{name}.png"
+    if not png_path.is_file():
+        return jsonify({"error": "image not found"}), 404
+    info = extract_prompt_from_png(png_path)
+    if not info:
+        return jsonify({"error": "no prompt metadata in PNG"}), 400
+    count = int(request.args.get("count", "2"))
+    count = max(1, min(count, 8))
+    queued = []
+    for _ in range(count):
+        seed = random.randint(1, 2**53)
+        wf = rebuild_workflow(info["workflow"], seed)
+        pid = queue_prompt(wf)
+        queued.append({"seed": seed, "prompt_id": pid})
+    return jsonify({"ok": True, "queued": queued, "cock_mode": info["cock_mode"], "count": len(queued)})
+
+
+def _inject_pag(wf: dict, cfg: float = 5.0) -> dict:
+    """Inject PerturbedAttention between model loader and KSamplers, drop primary CFG."""
+    upstream_model = wf["3"]["inputs"].get("model", ["17", 0])
+    wf["51"] = {
+        "inputs": {
+            "model": upstream_model,
+            "scale": 3.0,
+            "adaptive_scale": 0.0,
+            "unet_block": "middle",
+            "unet_block_id": 0,
+            "sigma_start": -1.0,
+            "sigma_end": -1.0,
+            "rescale": 0.0,
+            "rescale_mode": "full",
+        },
+        "class_type": "PerturbedAttention",
+        "_meta": {"title": "Perturbed Attention"},
+    }
+    wf["3"]["inputs"]["model"] = ["51", 0]
+    wf["3"]["inputs"]["cfg"] = cfg
+    if "22" in wf:
+        wf["22"]["inputs"]["model"] = ["51", 0]
+        # 2nd-pass CFG already low — leave it
+    return wf
+
+
+@app.post("/api/redo_pag/<character>/<name>")
+def redo_pag(character: str, name: str):
+    """Queue a PAG re-render: inject PerturbedAttention @ scale 3.0, drop CFG→5, new seed."""
+    png_path = OUTPUT_ROOT / character / f"{name}.png"
+    if not png_path.is_file():
+        return jsonify({"error": "image not found"}), 404
+    info = extract_prompt_from_png(png_path)
+    if not info:
+        return jsonify({"error": "no prompt metadata in PNG"}), 400
+    if info.get("has_pag"):
+        return jsonify({"error": "already has PAG — use make_similar instead"}), 400
+    wf = copy.deepcopy(info["workflow"])
+    seed = random.randint(1, 2**53)
+    _inject_pag(wf, cfg=5.0)
+    wf["3"]["inputs"]["seed"] = seed
+    if "22" in wf:
+        wf["22"]["inputs"]["seed"] = seed + 1
+    # Save into the character's own folder with a _pag suffix
+    wf["9"]["inputs"]["filename_prefix"] = f"comfy/{character}/{character}_pag"
+    pid = queue_prompt(wf)
+    return jsonify({"ok": True, "prompt_id": pid, "seed": seed})
+
+
+@app.get("/api/stars")
+def stars_gallery():
+    """Return all images with stars=3 across all characters, sorted by character then mtime."""
+    if not OUTPUT_ROOT.exists():
+        return jsonify([])
+    result = []
+    for p in sorted(OUTPUT_ROOT.iterdir()):
+        if not p.is_dir():
+            continue
+        char = p.name
+        marks = load_marks(char)
+        hq_done = hq_rendered_set(char, p)
+        for stem, entry in marks.items():
+            if entry.get("stars") == 3:
+                png = p / f"{stem}.png"
+                if png.is_file():
+                    st = png.stat()
+                    result.append({
+                        "character": char,
+                        "name": stem,
+                        "file": f"{stem}.png",
+                        "mtime": st.st_mtime,
+                        "keep": entry.get("keep", False),
+                        "hq": entry.get("hq"),
+                        "hq_done": stem in hq_done,
+                        "note": entry.get("note", ""),
+                        "stars": 3,
+                    })
+    result.sort(key=lambda x: (x["character"], x["mtime"]))
+    return jsonify(result)
+
+
+@app.post("/api/queue_hq/<character>/<name>")
+def queue_hq(character: str, name: str):
+    """Queue an HQ pass (FaceDetailer + CockDetailer, no upscale) from PNG metadata."""
+    png_path = OUTPUT_ROOT / character / f"{name}.png"
+    if not png_path.is_file():
+        return jsonify({"error": "image not found"}), 404
+    info = extract_prompt_from_png(png_path)
+    if not info:
+        return jsonify({"error": "no prompt metadata in PNG"}), 400
+    wf = copy.deepcopy(info["workflow"])
+    m = re.search(r'_0*(\d+)_?$', name)
+    num = m.group(1) if m else "00"
+    wf["9"]["inputs"]["filename_prefix"] = f"comfy/{character}/{character}_hq_{num}"
+    _add_enhanced_nodes(wf, upscale=False)
+    pid = queue_prompt(wf)
+    return jsonify({"ok": True, "prompt_id": pid, "num": num})
+
+
+# ── ComfyUI WebSocket proxy ──────────────────────────────────────────────────
+# Runs as a background thread: connects server-side (no origin check) to
+# ComfyUI's WebSocket and caches the latest preview frame + progress info.
+# The browser then polls /api/comfy_preview instead of connecting directly.
+
+_ws_lock = threading.Lock()
+_ws_preview_b64: str | None = None   # latest JPEG preview as base64 string
+_ws_progress: dict = {}              # {"step": N, "max": M}
+_ws_rendering: bool = False          # True while a job is running
+
+
+def _comfy_ws_proxy():
+    global _ws_preview_b64, _ws_progress, _ws_rendering
+    try:
+        import websocket  # websocket-client
+    except ImportError:
+        return  # no library — silently skip proxy
+    client_id = uuid.uuid4().hex
+    ws_url = f"ws://127.0.0.1:8188/ws?clientId={client_id}"
+    while True:
         try:
+            ws = websocket.WebSocketApp(
+                ws_url,
+                on_message=_ws_on_message,
+                on_error=lambda ws, err: None,
+                on_close=lambda ws, *a: None,
+            )
+            ws.run_forever()
+        except Exception:
+            pass
+        time.sleep(4)  # reconnect after disconnect
+
+
+def _ws_on_message(ws, msg):
+    global _ws_preview_b64, _ws_progress, _ws_rendering
+    if isinstance(msg, bytes):
+        # Binary frame: first 8 bytes = type header, rest = JPEG
+        if len(msg) > 8:
+            jpeg = msg[8:]
+            b64 = base64.b64encode(jpeg).decode()
+            with _ws_lock:
+                _ws_preview_b64 = b64
+                _ws_rendering = True
+    else:
+        try:
+            data = json.loads(msg)
+            if data.get("type") == "progress":
+                with _ws_lock:
+                    _ws_progress = {"step": data["data"]["value"], "max": data["data"]["max"]}
+                    _ws_rendering = True
+            elif data.get("type") == "status":
+                q = data.get("data", {}).get("status", {}).get("exec_info", {}).get("queue_remaining", -1)
+                if q == 0:
+                    with _ws_lock:
+                        _ws_rendering = False
+        except Exception:
+            pass
+
+
+_proxy_thread = threading.Thread(target=_comfy_ws_proxy, daemon=True)
+_proxy_thread.start()
+
+
+@app.get("/api/comfy_preview")
+def comfy_preview():
+    """Return latest ComfyUI preview frame (base64 JPEG) + progress."""
+    with _ws_lock:
+        return jsonify({
+            "rendering": _ws_rendering,
+            "img": _ws_preview_b64,
+            "step": _ws_progress.get("step"),
+            "max": _ws_progress.get("max"),
+        })
+
+
+@app.get("/stars")
+def stars_page():
+    resp = send_from_directory("static", "stars.html")
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return resp
+
+
+@app.get("/compare")
+def compare_page():
+    resp = send_from_directory("static", "compare.html")
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return resp
+
+
+@app.get("/api/compare/pairs/<character>")
+def compare_pairs(character: str):
+    """Return list of (original, hq) filename pairs for a character."""
+    d = OUTPUT_ROOT / character
+    if not d.is_dir():
+        return jsonify([]), 404
+
+    # Find all HQ files: <char>_hq_<num>_00001_.png
+    hq_pattern = re.compile(r'^.+_hq_(\w+)_\d+_\.png$')
+    orig_pattern = re.compile(r'^(.+?)_(\d+)_\.png$')
+
+    # Build map: strip number -> hq filename
+    hq_by_num: dict[str, str] = {}
+    for f in d.glob("*.png"):
+        m = hq_pattern.match(f.name)
+        if m:
+            # hq_num may be like "7" or "slutty_8"
+            hq_by_num[m.group(1)] = f.name
+
+    # Build map: num -> list of candidate original files
+    candidates: dict[str, list[str]] = {}
+    for f in sorted(d.glob("*.png")):
+        if "_hq_" in f.name:
+            continue
+        m = orig_pattern.match(f.name)
+        if not m:
+            continue
+        num_str = str(int(m.group(2)))
+        candidates.setdefault(num_str, []).append(f.name)
+
+    pairs = []
+    for num_str, hq_name in sorted(hq_by_num.items(), key=lambda x: int(x[0]) if x[0].isdigit() else 0):
+        cands = candidates.get(num_str, [])
+        if not cands:
+            continue
+        # Prefer file whose prefix matches character name
+        preferred = next((c for c in cands if c.startswith(character + "_")), cands[0])
+        pairs.append({"orig": preferred, "hq": hq_name, "num": num_str})
+
+    return jsonify(pairs)
+
+
+@app.get("/api/imgsize/<character>/<name>")
+def imgsize(character: str, name: str):
+    path = OUTPUT_ROOT / character / f"{name}.png"
+    if not path.is_file():
+        return jsonify({"error": "not found"}), 404
+    try:
+        img = Image.open(path)
+        return jsonify({"width": img.width, "height": img.height})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.get("/animate")
+def animate_page():
+    resp = send_from_directory("static", "animate.html")
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return resp
+
+
+def _runpod_post(path: str, data: dict) -> dict:
+    body = json.dumps(data).encode()
+    r = http_requests.post(f"{RUNPOD_COMFY}{path}", data=body,
+                           headers={"Content-Type": "application/json"}, timeout=30)
+    r.raise_for_status()
+    return r.json()
+
+
+def _runpod_get(path: str) -> dict:
+    r = http_requests.get(f"{RUNPOD_COMFY}{path}", timeout=10)
+    r.raise_for_status()
+    return r.json()
+
+
+def _download_video(job: dict, videos: list[dict]) -> None:
+    """Download completed videos from RunPod to local VIDEO_DIR, with metadata sidecar."""
+    char = job.get("character", "unknown")
+    src_name = job.get("name", "unknown")
+    dest_dir = VIDEO_DIR / char
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    for v in videos:
+        rel = v.get("rel", "")
+        fname = rel.split("/")[-1]
+        dest = dest_dir / f"{src_name}__{fname}"
+        if dest.exists():
+            continue
+        try:
+            r = http_requests.get(v["url"], timeout=60)
+            r.raise_for_status()
+            dest.write_bytes(r.content)
+            # Save metadata sidecar
+            meta = {
+                "character": char, "src_name": src_name,
+                "prompt": job.get("prompt", ""),
+                "user_description": job.get("user_description", ""),
+                "width": job.get("width", 0), "height": job.get("height", 0),
+                "length": job.get("length", 81), "fps": job.get("fps", 24),
+                "fast_mode": job.get("fast_mode", True),
+                "downloaded": time.time(),
+            }
+            dest.with_suffix(".json").write_text(json.dumps(meta, indent=2))
+            # Generate thumbnail
+            thumb = DATA_DIR / "video_thumbs" / f"{char}__{dest.name}.jpg"
             subprocess.run(
-                ["ffmpeg", "-y", "-i", str(path), "-vframes", "1", "-q:v", "3", str(thumb)],
+                ["ffmpeg", "-y", "-i", str(dest), "-vframes", "1", "-q:v", "3", str(thumb)],
                 capture_output=True, timeout=30,
             )
         except Exception:
             pass
-    if not thumb.exists():
-        return "no thumbnail", 404
-    return send_file(thumb, mimetype="image/jpeg")
 
 
-@app.get("/download/<path:filepath>")
-def download_video(filepath: str):
-    path = OUTPUT_ROOT / filepath
-    if not path.is_file():
-        return "not found", 404
-    return send_file(path, as_attachment=True, download_name=path.name)
-
-
-@app.post("/api/mark/<path:filepath>")
-def mark(filepath: str):
-    p = Path(filepath)
-    fk = str(p.parent) if str(p.parent) != "." else ""
-    body = request.get_json(force=True) or {}
-    marks = load_marks(fk)
-    entry = marks.get(p.stem, {})
-    for k in ("keep", "stars", "note"):
-        if k in body:
-            entry[k] = body[k]
-    entry = {k: v for k, v in entry.items() if v not in (False, None, "", 0)}
-    if entry:
-        marks[p.stem] = entry
-    else:
-        marks.pop(p.stem, None)
-    save_marks(fk, marks)
-    return jsonify({"ok": True, "entry": entry})
-
-
-# ── Animate endpoints ────────────────────────────────────────────────────────
-
-def _comfy_post(path: str, data: dict) -> dict:
-    body = json.dumps(data).encode()
-    req = urllib.request.Request(
-        f"{COMFY_URL}{path}",
-        data=body,
-        headers={"Content-Type": "application/json"},
-    )
-    with urllib.request.urlopen(req, timeout=30) as r:
-        return json.loads(r.read())
-
-
-def _comfy_get(path: str) -> dict:
-    with urllib.request.urlopen(f"{COMFY_URL}{path}", timeout=10) as r:
-        return json.loads(r.read())
-
-
-def _upload_image_to_comfy(image_path: Path) -> str:
-    """Upload image to ComfyUI input folder, return the filename."""
-    import urllib.parse
-    import mimetypes
-
+def _upload_to_runpod(image_path: Path) -> str:
+    """Upload image to RunPod ComfyUI input folder, return filename."""
     suffix = image_path.suffix.lower()
-    mt = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png"}.get(suffix, "application/octet-stream")
-
-    # multipart/form-data upload
-    boundary = "----WanKeeperBoundary"
-    body_parts = []
-    body_parts.append(f"--{boundary}".encode())
-    body_parts.append(f'Content-Disposition: form-data; name="image"; filename="{image_path.name}"'.encode())
-    body_parts.append(f"Content-Type: {mt}".encode())
-    body_parts.append(b"")
-    body_parts.append(image_path.read_bytes())
-    body_parts.append(f"--{boundary}--".encode())
-    body = b"\r\n".join(body_parts)
-
-    req = urllib.request.Request(
-        f"{COMFY_URL}/upload/image",
-        data=body,
-        headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
-        method="POST",
-    )
-    with urllib.request.urlopen(req, timeout=30) as r:
-        result = json.loads(r.read())
-    return result["name"]
+    mt = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png"}.get(suffix, "image/png")
+    with open(image_path, "rb") as f:
+        r = http_requests.post(
+            f"{RUNPOD_COMFY}/upload/image",
+            files={"image": (image_path.name, f, mt)},
+            timeout=60,
+        )
+    r.raise_for_status()
+    return r.json()["name"]
 
 
 @app.post("/api/animate")
-def animate():
+def api_animate():
     """
-    Body: { "prompt": "...", "width": 640, "height": 640,
-            "length": 81, "fps": 24, "fast_mode": true,
-            "use_ai_planner": true }
-    Plus either:
-      - multipart file upload (field "image")
-      - or JSON field "image_path" (relative to OUTPUT_ROOT)
+    Body (JSON): { "character": "...", "name": "...", "prompt": "...",
+                   "width": 640, "height": 640, "length": 81,
+                   "fast_mode": true, "content_loras": [["Breast_Physics", 0.8]] }
     """
     from wan_workflow import build_wan_i2v_workflow
+    body = request.get_json(force=True) or {}
+    character = body.get("character", "")
+    name = body.get("name", "")
+    prompt = body.get("prompt", "")
+    if not character or not name or not prompt:
+        return jsonify({"error": "character, name and prompt required"}), 400
 
-    # ── get image ────────────────────────────────────────────
-    image_file = request.files.get("image")
-    if image_file:
-        suffix = Path(image_file.filename).suffix or ".jpg"
-        tmp = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
-        image_file.save(tmp.name)
-        tmp_path = Path(tmp.name)
-    else:
-        body = request.get_json(force=True) or {}
-        rel = body.get("image_path", "")
-        if not rel:
-            return jsonify({"error": "no image provided"}), 400
-        tmp_path = OUTPUT_ROOT / rel
-        if not tmp_path.is_file():
-            return jsonify({"error": "image not found"}), 404
+    png_path = OUTPUT_ROOT / character / f"{name}.png"
+    if not png_path.is_file():
+        return jsonify({"error": "image not found"}), 404
 
-    if image_file:
-        body = request.form.to_dict()
-        # content_loras sent as JSON string from the form; always present (may be [])
-        raw_loras = body.pop("content_loras_json", None)
-        body["content_loras"] = json.loads(raw_loras) if raw_loras is not None else None
-    else:
-        body = request.get_json(force=True) or {}
+    fast_mode, quality_steps = _parse_mode(body.get("mode"), body.get("fast_mode", True))
+    job_id = str(uuid.uuid4())
+    job = {
+        "job_id": job_id,
+        "prompt_id": None,
+        "character": character,
+        "name": name,
+        "user_description": prompt,
+        "prompt": prompt,
+        "width": int(body.get("width", 640)),
+        "height": int(body.get("height", 640)),
+        "length": int(body.get("length", 81)),
+        "fps": int(body.get("fps", 24)),
+        "fast_mode": fast_mode,
+        "quality_steps": quality_steps,
+        "content_loras": body.get("content_loras", []),
+        "submitted": time.time(),
+        "status": "pending",
+        "videos": [],
+    }
+    with _animate_jobs_lock:
+        _animate_jobs.insert(0, job)
+    return jsonify({"ok": True, "job_id": job_id, "status": "pending"})
 
-    user_prompt = body.get("prompt", "")
-    use_planner = str(body.get("use_ai_planner", "true")).lower() != "false"
 
-    # ── plan workflow params ──────────────────────────────────
-    if use_planner and user_prompt and os.environ.get("ANTHROPIC_API_KEY"):
+@app.post("/api/animate_upload")
+def api_animate_upload():
+    """
+    Multipart form: image file + fields (prompt, width, height, length, fps, fast_mode, content_loras).
+    Saves image to OUTPUT_ROOT/_uploads/, then queues an animate job.
+    """
+    from wan_workflow import build_wan_i2v_workflow
+    prompt = request.form.get("prompt", "").strip()
+    if not prompt:
+        return jsonify({"error": "prompt required"}), 400
+
+    uploads_dir = OUTPUT_ROOT / "_uploads"
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+
+    saved_stem = request.form.get("_saved_stem", "").strip()
+    if saved_stem:
+        dest = uploads_dir / f"{saved_stem}.png"
+        stem = saved_stem
+        if not dest.is_file():
+            saved_stem = ""  # fallback to re-upload
+
+    if not saved_stem:
+        image_file = request.files.get("image")
+        if not image_file:
+            return jsonify({"error": "image file required"}), 400
+        stem = re.sub(r"[^\w\-]", "_", Path(image_file.filename).stem if image_file.filename else "upload")[:60]
+        dest = uploads_dir / f"{stem}.png"
+        if dest.exists():
+            stem = f"{stem}_{uuid.uuid4().hex[:6]}"
+            dest = uploads_dir / f"{stem}.png"
         try:
-            from planner import plan_workflow
-            params = plan_workflow(tmp_path, user_prompt)
+            img = Image.open(image_file.stream).convert("RGB")
+            img.save(dest, "PNG")
         except Exception as e:
-            params = {}
-    else:
-        params = {}
+            return jsonify({"error": f"could not save image: {e}"}), 400
 
-    positive_prompt = params.get("positive_prompt") or user_prompt or "cinematic motion, smooth movement"
-    negative_prompt = params.get("negative_prompt") or None
-    width   = int(body.get("width",  params.get("width",  640)))
-    height  = int(body.get("height", params.get("height", 640)))
-    length  = int(body.get("length", params.get("length", 81)))
-    fps     = int(body.get("fps",    params.get("fps",    24)))
-    fast    = str(body.get("fast_mode", params.get("fast_mode", True))).lower() != "false"
-    # User's explicit selection wins; None means not provided → fall back to AI suggestions
-    user_loras = body.get("content_loras")
-    content_loras = user_loras if user_loras is not None else params.get("content_loras", [])
-
-    # ── upload image to ComfyUI ───────────────────────────────
+    import json as _json
     try:
-        comfy_filename = _upload_image_to_comfy(tmp_path)
-    except Exception as e:
-        return jsonify({"error": f"image upload failed: {e}"}), 500
-    finally:
-        if image_file and tmp_path.exists():
-            tmp_path.unlink(missing_ok=True)
+        content_loras = _json.loads(request.form.get("content_loras", "[]"))
+    except Exception:
+        content_loras = []
 
-    # ── build and submit workflow ─────────────────────────────
-    kw = dict(
-        image_filename=comfy_filename,
-        positive_prompt=positive_prompt,
-        width=width, height=height, length=length, fps=fps,
-        fast_mode=fast, content_loras=content_loras,
-    )
-    if negative_prompt:
-        kw["negative_prompt"] = negative_prompt
-
-    workflow = build_wan_i2v_workflow(**kw)
-
-    try:
-        result = _comfy_post("/prompt", {"prompt": workflow})
-    except Exception as e:
-        return jsonify({"error": f"ComfyUI unreachable: {e}"}), 502
-
-    return jsonify({
-        "ok": True,
-        "prompt_id": result.get("prompt_id"),
-        "positive_prompt": positive_prompt,
-    })
+    job_id = str(uuid.uuid4())
+    job = {
+        "job_id": job_id,
+        "prompt_id": None,
+        "character": "_uploads",
+        "name": stem,
+        "user_description": prompt,
+        "prompt": prompt,
+        "width": int(request.form.get("width", 640)),
+        "height": int(request.form.get("height", 640)),
+        "length": int(request.form.get("length", 81)),
+        "fps": int(request.form.get("fps", 24)),
+        **dict(zip(("fast_mode", "quality_steps"), _parse_mode(request.form.get("mode"), request.form.get("fast_mode", "true").lower() != "false"))),
+        "content_loras": content_loras,
+        "submitted": time.time(),
+        "status": "pending",
+        "videos": [],
+    }
+    with _animate_jobs_lock:
+        _animate_jobs.insert(0, job)
+    return jsonify({"ok": True, "job_id": job_id, "status": "pending", "character": "_uploads", "name": stem})
 
 
 @app.get("/api/animate/status/<prompt_id>")
-def animate_status(prompt_id: str):
-    """Poll ComfyUI for job status. Returns {status, videos} when done."""
+def api_animate_status(prompt_id: str):
     try:
-        history = _comfy_get(f"/history/{prompt_id}")
+        history = _runpod_get(f"/history/{prompt_id}")
     except Exception as e:
         return jsonify({"error": str(e)}), 502
 
     if prompt_id not in history:
-        # check queue
         try:
-            queue = _comfy_get("/queue")
+            queue = _runpod_get("/queue")
             running = [item[1] for item in queue.get("queue_running", [])]
             pending = [item[1] for item in queue.get("queue_pending", [])]
             if prompt_id in running:
@@ -332,12 +971,9 @@ def animate_status(prompt_id: str):
         return jsonify({"status": "queued"})
 
     entry = history[prompt_id]
-    status_info = entry.get("status", {})
-    if status_info.get("status_str") == "error":
-        msgs = [m.get("details", "") for m in status_info.get("messages", []) if m.get("type") == "error"]
-        return jsonify({"status": "error", "error": "; ".join(msgs)})
+    if entry.get("status", {}).get("status_str") == "error":
+        return jsonify({"status": "error"})
 
-    # collect output video paths
     videos = []
     for node_output in entry.get("outputs", {}).values():
         for key in ("videos", "images"):
@@ -347,14 +983,318 @@ def animate_status(prompt_id: str):
                     continue
                 subfolder = vinfo.get("subfolder", "")
                 rel = f"{subfolder}/{fname}".lstrip("/")
-                videos.append(rel)
+                videos.append({"rel": rel, "url": f"{RUNPOD_COMFY}/view?filename={fname}&subfolder={subfolder}&type=output"})
 
-    return jsonify({"status": "done", "videos": videos})
+    completed = entry.get("status", {}).get("status_str") != "error"
+    status = "done" if (completed and videos) else ("error" if not completed else "done")
+    job_ref = None
+    with _animate_jobs_lock:
+        for job in _animate_jobs:
+            if job["prompt_id"] == prompt_id:
+                prev_status = job.get("status")
+                job["status"] = status
+                job["videos"] = videos
+                if status == "done" and prev_status != "done":
+                    job_ref = dict(job)
+                break
+
+    if job_ref and videos:
+        threading.Thread(target=_download_video, args=(job_ref, videos), daemon=True).start()
+
+    return jsonify({"status": status, "videos": videos})
+
+
+@app.post("/api/jobs/dispatch/<job_id>")
+def api_dispatch(job_id: str):
+    """Dispatch a pending job with a refined prompt to ComfyUI."""
+    from wan_workflow import build_wan_i2v_workflow
+    body = request.get_json(force=True) or {}
+    with _animate_jobs_lock:
+        job = next((j for j in _animate_jobs if j.get("job_id") == job_id), None)
+    if not job:
+        return jsonify({"error": "job not found"}), 404
+    if job["status"] not in ("pending", "error"):
+        return jsonify({"error": f"job already {job['status']}"}), 400
+
+    refined_prompt = body.get("prompt", job["prompt"])
+    job["prompt"] = refined_prompt
+
+    png_path = OUTPUT_ROOT / job["character"] / f"{job['name']}.png"
+    try:
+        comfy_filename = _upload_to_runpod(png_path)
+    except Exception as e:
+        return jsonify({"error": f"upload failed: {e}"}), 502
+
+    workflow = build_wan_i2v_workflow(
+        image_filename=comfy_filename,
+        positive_prompt=refined_prompt,
+        width=job["width"], height=job["height"],
+        length=job["length"], fps=job["fps"],
+        fast_mode=job["fast_mode"],
+        quality_steps=job.get("quality_steps", 20),
+        content_loras=job.get("content_loras", []),
+        filename_prefix="video/wan_ai",
+    )
+    try:
+        result = _runpod_post("/prompt", {"prompt": workflow})
+    except Exception as e:
+        return jsonify({"error": f"ComfyUI error: {e}"}), 502
+
+    with _animate_jobs_lock:
+        job["prompt_id"] = result.get("prompt_id")
+        job["status"] = "queued"
+    return jsonify({"ok": True, "prompt_id": job["prompt_id"]})
+
+
+@app.post("/api/rerun")
+def api_rerun():
+    """Create a pending job from a local video with feedback notes."""
+    body = request.get_json(force=True) or {}
+    character = body.get("character", "")
+    src_name = body.get("src_name", "")
+    original_prompt = body.get("original_prompt", "")
+    feedback = body.get("feedback", "")
+    width = int(body.get("width", 640))
+    height = int(body.get("height", 640))
+    length = int(body.get("length", 81))
+    fast_mode, quality_steps = _parse_mode(body.get("mode"), body.get("fast_mode", True))
+    if not character or not src_name:
+        return jsonify({"error": "character and src_name required"}), 400
+    # Build user_description combining original prompt + feedback
+    user_desc = f"{original_prompt}\n\nFEEDBACK: {feedback}" if feedback else original_prompt
+    job_id = str(uuid.uuid4())
+    job = {
+        "job_id": job_id, "prompt_id": None,
+        "character": character, "name": f"{src_name}_" if not src_name.endswith("_") else src_name,
+        "user_description": user_desc,
+        "prompt": original_prompt,
+        "feedback": feedback,
+        "width": width, "height": height, "length": length,
+        "fps": 24, "fast_mode": fast_mode, "quality_steps": quality_steps, "content_loras": [],
+        "submitted": time.time(), "status": "pending", "videos": [],
+    }
+    with _animate_jobs_lock:
+        _animate_jobs.insert(0, job)
+    return jsonify({"ok": True, "job_id": job_id})
+
+
+@app.post("/api/plan_prompt")
+def api_plan_prompt():
+    body = request.get_json(force=True) or {}
+    character = body.get("character", "")
+    name = body.get("name", "")
+    user_prompt = body.get("prompt", "")
+    if not character or not name or not user_prompt:
+        return jsonify({"error": "character, name and prompt required"}), 400
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        return jsonify({"error": "ANTHROPIC_API_KEY not set"}), 500
+    png_path = OUTPUT_ROOT / character / f"{name}.png"
+    if not png_path.is_file():
+        return jsonify({"error": "image not found"}), 404
+    try:
+        from planner import plan_workflow
+        params = plan_workflow(png_path, user_prompt)
+        return jsonify({"ok": True, "params": params})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.post("/api/plan_upload")
+def api_plan_upload():
+    """
+    Multipart: image file + user_prompt field.
+    Analyzes image with Claude and returns suggested workflow params (does NOT queue a job).
+    """
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        return jsonify({"error": "ANTHROPIC_API_KEY not set"}), 500
+    image_file = request.files.get("image")
+    if not image_file:
+        return jsonify({"error": "image required"}), 400
+    user_prompt = request.form.get("prompt", "").strip()
+    if not user_prompt:
+        return jsonify({"error": "prompt required"}), 400
+
+    # Save to temp location for planner
+    uploads_dir = OUTPUT_ROOT / "_uploads"
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+    stem = re.sub(r"[^\w\-]", "_", Path(image_file.filename).stem if image_file.filename else "upload")[:60]
+    dest = uploads_dir / f"{stem}.png"
+    if dest.exists():
+        stem = f"{stem}_{uuid.uuid4().hex[:6]}"
+        dest = uploads_dir / f"{stem}.png"
+    try:
+        img = Image.open(image_file.stream).convert("RGB")
+        img.save(dest, "PNG")
+    except Exception as e:
+        return jsonify({"error": f"could not save image: {e}"}), 400
+
+    try:
+        from planner import plan_workflow
+        params = plan_workflow(dest, user_prompt)
+        params["_saved_stem"] = stem  # so submit can reuse without re-uploading
+        return jsonify({"ok": True, "params": params})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.get("/api/runpod_video/<path:filename>")
+def proxy_runpod_video(filename: str):
+    """Download video from RunPod to local cache and serve with range support."""
+    import urllib.parse
+    parts = filename.rsplit("/", 1)
+    subfolder, fname = (parts[0], parts[1]) if len(parts) == 2 else ("", parts[0])
+    cache_path = DATA_DIR / "video_cache" / filename.replace("/", "__")
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    if not cache_path.exists():
+        url = f"{RUNPOD_COMFY}/view?filename={urllib.parse.quote(fname)}&subfolder={urllib.parse.quote(subfolder)}&type=output"
+        try:
+            r = http_requests.get(url, timeout=60)
+            r.raise_for_status()
+            cache_path.write_bytes(r.content)
+        except Exception as e:
+            return f"proxy error: {e}", 502
+    return send_file(cache_path, mimetype="video/mp4", conditional=True)
+
+
+@app.get("/api/local_videos")
+def api_local_videos():
+    """List locally downloaded videos, newest first."""
+    out = []
+    if not VIDEO_DIR.exists():
+        return jsonify([])
+    for char_dir in sorted(VIDEO_DIR.iterdir()):
+        if not char_dir.is_dir():
+            continue
+        for f in sorted(char_dir.glob("*.mp4"), key=lambda p: p.stat().st_mtime, reverse=True):
+            parts = f.stem.split("__", 1)
+            src_name = parts[0] if len(parts) == 2 else f.stem
+            thumb = DATA_DIR / "video_thumbs" / f"{char_dir.name}__{f.name}.jpg"
+            meta_file = f.with_suffix(".json")
+            meta = json.loads(meta_file.read_text()) if meta_file.exists() else {}
+            out.append({
+                "character": char_dir.name,
+                "src_name": src_name,
+                "filename": f.name,
+                "rel": f"{char_dir.name}/{f.name}",
+                "mtime": f.stat().st_mtime,
+                "size": f.stat().st_size,
+                "has_thumb": thumb.exists(),
+                "prompt": meta.get("prompt", ""),
+                "user_description": meta.get("user_description", ""),
+                "width": meta.get("width", 0),
+                "height": meta.get("height", 0),
+                "length": meta.get("length", 81),
+                "fast_mode": meta.get("fast_mode", True),
+                "keep": meta.get("keep", False),
+                "reject": meta.get("reject", False),
+                "note": meta.get("note", ""),
+            })
+    return jsonify(out)
+
+
+@app.get("/local_video/<path:rel>")
+def serve_local_video(rel: str):
+    path = VIDEO_DIR / rel
+    if not path.is_file():
+        return "not found", 404
+    return send_file(path, mimetype="video/mp4", conditional=True)
+
+
+@app.get("/video_thumb/<path:rel>")
+def serve_video_thumb(rel: str):
+    char, fname = rel.split("/", 1)
+    thumb = DATA_DIR / "video_thumbs" / f"{char}__{fname.replace('.mp4', '.jpg')}"
+    if not thumb.exists():
+        # Generate on demand
+        video = VIDEO_DIR / char / fname
+        if video.is_file():
+            subprocess.run(
+                ["ffmpeg", "-y", "-i", str(video), "-vframes", "1", "-q:v", "3", str(thumb)],
+                capture_output=True, timeout=30,
+            )
+    if not thumb.exists():
+        return "no thumb", 404
+    return send_file(thumb, mimetype="image/jpeg")
+
+
+@app.post("/api/mark_video/<path:rel>")
+def mark_video(rel: str):
+    """Update keep/reject/note in the video's .json sidecar."""
+    body = request.get_json(force=True) or {}
+    video = VIDEO_DIR / rel
+    if not video.is_file():
+        return jsonify({"error": "not found"}), 404
+    meta_file = video.with_suffix(".json")
+    meta = json.loads(meta_file.read_text()) if meta_file.exists() else {}
+    for k in ("keep", "reject", "note"):
+        if k in body:
+            meta[k] = body[k]
+    meta_file.write_text(json.dumps(meta, indent=2))
+    return jsonify({"ok": True})
+
+
+@app.get("/videos")
+def videos_page():
+    return send_from_directory("static", "videos.html")
+
+
+@app.get("/queue")
+def queue_page():
+    return send_from_directory("static", "queue.html")
+
+
+@app.get("/api/jobs")
+def api_jobs():
+    with _animate_jobs_lock:
+        return jsonify(list(_animate_jobs))
+
+
+def _terminate_runpod_pod(pod_id: str, api_key: str) -> bool:
+    mutation = f'mutation {{ podTerminate(input: {{podId: "{pod_id}"}}) }}'
+    result = subprocess.run(
+        ["curl", "-s", "-X", "POST",
+         f"https://api.runpod.io/graphql?api_key={api_key}",
+         "-H", "Content-Type: application/json",
+         "-d", json.dumps({"query": mutation})],
+        capture_output=True, text=True, timeout=30,
+    )
+    return result.returncode == 0
+
+
+def _auto_shutdown_loop():
+    """Terminate RunPod pod when all jobs done and ComfyUI queue is empty."""
+    if not RUNPOD_POD_ID or not RUNPOD_API_KEY:
+        return
+    while True:
+        time.sleep(60)
+        try:
+            with _animate_jobs_lock:
+                jobs = list(_animate_jobs)
+            if not jobs:
+                continue
+            all_done = all(j["status"] in ("done", "error") for j in jobs)
+            if not all_done:
+                continue
+            # Check ComfyUI queue is empty
+            try:
+                queue = _runpod_get("/queue")
+                running = len(queue.get("queue_running", []))
+                pending = len(queue.get("queue_pending", []))
+                if running > 0 or pending > 0:
+                    continue
+            except Exception:
+                continue
+            # All clear — terminate pod
+            print(f"[auto-shutdown] All jobs done, terminating pod {RUNPOD_POD_ID}", flush=True)
+            _terminate_runpod_pod(RUNPOD_POD_ID, RUNPOD_API_KEY)
+            break
+        except Exception:
+            pass
+
+
+_shutdown_thread = threading.Thread(target=_auto_shutdown_loop, daemon=True)
+_shutdown_thread.start()
 
 
 if __name__ == "__main__":
-    print(f"[keeperweb] output: {OUTPUT_ROOT}")
-    print(f"[keeperweb] data:   {DATA_DIR}")
-    print(f"[keeperweb] port:   {PORT}")
-    print(f"[keeperweb] comfy:  {COMFY_URL}")
-    app.run(host="0.0.0.0", port=PORT, debug=False)
+    app.run(host="127.0.0.1", port=5151, debug=False)

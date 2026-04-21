@@ -34,7 +34,7 @@ if [ -f "$MARKER_FILE" ]; then
   echo "  1) Quick start - skip downloads, just launch ComfyUI"
   echo "  2) Full reinstall - download everything fresh"
   echo ""
-  read -p "Enter choice [default: 1]: " INSTALL_CHOICE
+  read -p "Enter choice [default: 1]: " INSTALL_CHOICE || true
   INSTALL_CHOICE=${INSTALL_CHOICE:-1}
 
   if [ "$INSTALL_CHOICE" = "1" ]; then
@@ -75,7 +75,7 @@ if [ $SKIP_DOWNLOADS -eq 0 ]; then
   echo "Select options separated by spaces (e.g., '1')"
   echo "Press Enter for all options [default: 1]"
   echo ""
-  read -p "Enter your choices: " MODEL_CHOICES
+  read -p "Enter your choices: " MODEL_CHOICES || true
   MODEL_CHOICES=${MODEL_CHOICES:-1}
 else
   MODEL_CHOICES="1"
@@ -381,7 +381,8 @@ cp /workspace/bootstrap/keeperweb/app.py          /workspace/comfyui2/keeper_web
 cp /workspace/bootstrap/keeperweb/wan_workflow.py  /workspace/comfyui2/keeper_web/wan_workflow.py
 cp /workspace/bootstrap/keeperweb/planner.py       /workspace/comfyui2/keeper_web/planner.py
 cp /workspace/bootstrap/keeperweb/static/index.html   /workspace/comfyui2/keeper_web/static/index.html
-cp /workspace/bootstrap/keeperweb/static/animate.html /workspace/comfyui2/keeper_web/static/animate.html
+cp /workspace/bootstrap/keeperweb/static/videos.html  /workspace/comfyui2/keeper_web/static/videos.html
+cp /workspace/bootstrap/keeperweb/static/animate.html /workspace/comfyui2/keeper_web/static/animate.html 2>/dev/null || true
 
 nohup python /workspace/comfyui2/keeper_web/app.py \
   > /workspace/keeperweb.log 2>&1 &

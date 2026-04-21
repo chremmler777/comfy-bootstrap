@@ -16,6 +16,8 @@ CONTENT_LORAS = {
     "Braless":        ("wan/Braless_High.safetensors",         "wan/Braless_Low.safetensors"),
     "BottomTS":       ("wan/Wan_BottomTS_High.safetensors",   "wan/Wan_BottomTS_Low.safetensors"),
     "K3NK_4llinOne":  ("wan/K3NK_4llinOne_High.safetensors",  "wan/K3NK_4llinOne_Low.safetensors"),
+    "Bouncing_Boobs": ("wan/Bouncing_Boobs_High.safetensors", "wan/Bouncing_Boobs_Low.safetensors"),
+    "WalkToward":     ("wan/WalkToward_High.safetensors",     "wan/WalkToward_Low.safetensors"),
 }
 
 LIGHTX2V_HIGH = "wan/wan_lightx2v_4steps_high_noise.safetensors"
@@ -32,8 +34,10 @@ def build_wan_i2v_workflow(
     fps: int = 24,
     seed: int | None = None,
     fast_mode: bool = True,
+    quality_steps: int = 20,
     content_loras: list[tuple[str, float]] | None = None,
     filename_prefix: str = "video/wan_ai",
+    use_rife: bool = False,
 ) -> dict:
     """
     Returns a ComfyUI API-format workflow dict (for POST /prompt).
@@ -46,7 +50,8 @@ def build_wan_i2v_workflow(
         length: number of frames (81 ≈ 3.4s at 24fps)
         fps: output video fps
         seed: random seed (None = random)
-        fast_mode: True = 4-step LightX2V LoRA; False = 20-step quality
+        fast_mode: True = LightX2V 6-step; False = quality mode
+        quality_steps: step count when fast_mode=False (10/20/30)
         content_loras: list of (lora_base_name, strength) e.g. [("Breast_Physics", 0.8)]
         filename_prefix: SaveVideo filename prefix
     """
@@ -111,7 +116,7 @@ def build_wan_i2v_workflow(
         n_model_l = build_lora_chain(n_unet_l, None, content_low)
 
     # ── ModelSamplingSD3 ─────────────────────────────────────
-    shift = 5.0 if fast_mode else 8.0
+    shift = 8.0
     n_samp_h = node("ModelSamplingSD3", {"model": [n_model_h, 0], "shift": shift})
     n_samp_l = node("ModelSamplingSD3", {"model": [n_model_l, 0], "shift": shift})
 
@@ -129,8 +134,9 @@ def build_wan_i2v_workflow(
 
     # ── KSamplers (two-pass: high noise then low noise) ──────
     if fast_mode:
-        # 4 total effective steps: 0→2 high noise, 2→4 low noise
-        total_steps = 4
+        # 6 steps, 33/67 split: 0→2 high noise, 2→6 low noise
+        # beta scheduler + shift 8.0 reduces flickering vs simple/shift 5.0
+        total_steps = 6
         n_ks1 = node("KSamplerAdvanced", {
             "model":         [n_samp_h, 0],
             "positive":      [n_i2v, 0],
@@ -141,7 +147,7 @@ def build_wan_i2v_workflow(
             "steps":         total_steps,
             "cfg":           1.0,
             "sampler_name":  "euler",
-            "scheduler":     "simple",
+            "scheduler":     "beta",
             "start_at_step": 0,
             "end_at_step":   2,
             "return_with_leftover_noise": "enable",
@@ -156,14 +162,15 @@ def build_wan_i2v_workflow(
             "steps":         total_steps,
             "cfg":           1.0,
             "sampler_name":  "euler",
-            "scheduler":     "simple",
+            "scheduler":     "beta",
             "start_at_step": 2,
             "end_at_step":   total_steps,
             "return_with_leftover_noise": "disable",
         })
     else:
-        # 20-step quality mode
-        total_steps = 20
+        # Quality mode — configurable step count, 50/50 split
+        total_steps = quality_steps
+        mid = total_steps // 2
         n_ks1 = node("KSamplerAdvanced", {
             "model":         [n_samp_h, 0],
             "positive":      [n_i2v, 0],
@@ -174,9 +181,9 @@ def build_wan_i2v_workflow(
             "steps":         total_steps,
             "cfg":           3.5,
             "sampler_name":  "euler",
-            "scheduler":     "simple",
+            "scheduler":     "beta",
             "start_at_step": 0,
-            "end_at_step":   10,
+            "end_at_step":   mid,
             "return_with_leftover_noise": "enable",
         })
         n_ks2 = node("KSamplerAdvanced", {
@@ -189,20 +196,36 @@ def build_wan_i2v_workflow(
             "steps":         total_steps,
             "cfg":           3.5,
             "sampler_name":  "euler",
-            "scheduler":     "simple",
-            "start_at_step": 10,
+            "scheduler":     "beta",
+            "start_at_step": mid,
             "end_at_step":   total_steps,
             "return_with_leftover_noise": "disable",
         })
 
-    # ── VAEDecode → CreateVideo → SaveVideo ──────────────────
-    n_dec  = node("VAEDecode",    {"samples": [n_ks2, 0], "vae": [n_vae, 0]})
-    n_vid  = node("CreateVideo",  {"images": [n_dec, 0], "fps": float(fps)})
+    # ── VAEDecode → (RIFE) → CreateVideo → SaveVideo ─────────
+    n_dec = node("VAEDecode", {"samples": [n_ks2, 0], "vae": [n_vae, 0]})
+
+    if use_rife:
+        # RIFE doubles the frame count → smooth motion without vibration
+        # Generates at half fps, RIFE interpolates to target fps
+        n_frames = node("RIFEInterpolation", {
+            "frames":                    [n_dec, 0],
+            "multiplier":                2,
+            "fps":                       float(fps),
+            "clear_cache_after_n_frames": 10,
+            "use_cache":                 True,
+            "ckpt_name":                 "flownet.pkl",
+            "interpolate_until_fps":     float(fps * 2),
+        })
+        n_vid = node("CreateVideo", {"images": [n_frames, 0], "fps": float(fps)})
+    else:
+        n_vid = node("CreateVideo", {"images": [n_dec, 0], "fps": float(fps)})
+
     node("SaveVideo", {
-        "video":            [n_vid, 0],
-        "filename_prefix":  filename_prefix,
-        "format":           "auto",
-        "codec":            "auto",
+        "video":           [n_vid, 0],
+        "filename_prefix": filename_prefix,
+        "format":          "auto",
+        "codec":           "auto",
     })
 
     return nodes
