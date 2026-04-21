@@ -142,13 +142,13 @@ fi
 
 cd ComfyUI
 
-# Use Python 3.10 for venv
-python3.10 -m venv venv
+# Use Python 3.10 for venv — inherit system packages (torch already in base image)
+python3.10 -m venv --system-site-packages venv
 source venv/bin/activate
 pip install --upgrade pip
 
-pip install torch torchvision torchaudio \
-  --index-url https://download.pytorch.org/whl/cu121
+# Skip torch install — base image (runpod/pytorch) already has CUDA torch
+# --system-site-packages venv inherits it
 
 # Remove strict version pins that cause issues
 sed -i 's/==.*//' requirements.txt
