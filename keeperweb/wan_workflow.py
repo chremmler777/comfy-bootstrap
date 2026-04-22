@@ -74,7 +74,7 @@ def build_wan_i2v_workflow(
 
     # ── shared: loaders ──────────────────────────────────────
     n_clip  = node("CLIPLoader", {"clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors", "type": "wan"})
-    n_vae   = node("VAELoader",  {"vae_name": "wan2.2_vae.safetensors"})
+    n_vae   = node("VAELoader",  {"vae_name": "wan_2.1_vae.safetensors"})
     n_unet_h = node("UNETLoader", {"unet_name": "wan/WAN_High.safetensors", "weight_dtype": "default"})
     n_unet_l = node("UNETLoader", {"unet_name": "wan/WAN_Low.safetensors",  "weight_dtype": "default"})
 

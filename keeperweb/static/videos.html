@@ -131,6 +131,7 @@ kbd { background: #222; border: 1px solid #383838; border-radius: 3px; padding: 
   <a href="/">← images</a>
   <a href="/queue">queue</a>
   <button onclick="openUpload()" style="margin-left:auto;background:#2a2a1a;color:#ca4;border:1px solid #5a5a2a;border-radius:4px;padding:4px 12px;font-size:12px;cursor:pointer">+ Animate from image</button>
+  <button id="btnPurge" onclick="purgeRejected()" style="background:#2a1a1a;color:#c44;border:1px solid #5a2a2a;border-radius:4px;padding:4px 12px;font-size:12px;cursor:pointer">🗑 Delete Rejected</button>
   <span id="vidCount" style="color:#555;font-size:11px"></span>
 </header>
 
@@ -220,9 +221,9 @@ kbd { background: #222; border: 1px solid #383838; border-radius: 3px; padding: 
       <div>
         <label>Mode</label>
         <select id="uploadMode">
-          <option value="fast" selected>Fast (LightX2V 6-step) ★</option>
-          <option value="q20">Quality 20-step</option>
-          <option value="q30">Quality 30-step</option>
+          <option value="fast" selected>Fast (LightX2V 6-step) ★ recommended</option>
+          <option value="q20">Quality 20-step ⚠ jitter</option>
+          <option value="q30">Quality 30-step ⚠ jitter</option>
         </select>
       </div>
     </div>
@@ -260,9 +261,9 @@ kbd { background: #222; border: 1px solid #383838; border-radius: 3px; padding: 
         <option value="241">~10s (241fr)</option>
       </select>
       <select id="rerunMode">
-        <option value="fast" selected>Fast (LightX2V 6-step) ★</option>
-        <option value="q20">Quality 20-step</option>
-        <option value="q30">Quality 30-step</option>
+        <option value="fast" selected>Fast (LightX2V 6-step) ★ recommended</option>
+        <option value="q20">Quality 20-step ⚠ jitter</option>
+        <option value="q30">Quality 30-step ⚠ jitter</option>
       </select>
     </div>
     <div class="arow">
@@ -447,7 +448,7 @@ function openRerun(i) {
     const sel = document.getElementById("rerunLen");
     for (const o of sel.options) { if (parseInt(o.value) === rerunTarget.length) { sel.value = rerunTarget.length; break; } }
   }
-  document.getElementById("rerunMode").value = rerunTarget.fast_mode === false ? "q8" : "fast";
+  document.getElementById("rerunMode").value = "fast";
   document.getElementById("rerunDlg").classList.add("show");
   document.getElementById("rerunFeedback").focus();
 }
@@ -643,6 +644,21 @@ async function poll() {
   renderPending(updated);
   const videos = await fetch("/api/local_videos").then(r=>r.json()).catch(()=>[]);
   renderGrid(videos);
+}
+
+async function purgeRejected() {
+  const btn = document.getElementById("btnPurge");
+  const rejected = currentVideos.filter(v => v.reject);
+  if (!rejected.length) { alert("No rejected videos."); return; }
+  if (!confirm(`Delete ${rejected.length} rejected video(s) from disk? This cannot be undone.`)) return;
+  btn.disabled = true;
+  btn.textContent = "Deleting…";
+  const r = await fetch("/api/purge_rejected_videos", {method:"POST"}).then(r=>r.json()).catch(()=>({error:"failed"}));
+  btn.disabled = false;
+  btn.textContent = "🗑 Delete Rejected";
+  if (r.error) { alert("Error: " + r.error); return; }
+  activeVid = 0;
+  await poll();
 }
 
 poll();

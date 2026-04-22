@@ -17,7 +17,7 @@ from PIL import Image
 OUTPUT_ROOT = Path("/home/chremmler/ComfyUI/output/comfy")
 DATA_DIR = Path(__file__).parent / "data"
 VIDEO_DIR = Path("/home/chremmler/ComfyUI/output/videos")
-RUNPOD_COMFY = os.environ.get("RUNPOD_COMFY", "https://8hx3zmtogetq6s-8188.proxy.runpod.net")
+RUNPOD_COMFY = os.environ.get("RUNPOD_COMFY", "https://3pbchnrvxu0xai-8188.proxy.runpod.net")
 RUNPOD_POD_ID = os.environ.get("RUNPOD_POD_ID", "")
 RUNPOD_API_KEY = os.environ.get("RUNPOD_API_KEY", "")
 DATA_DIR.mkdir(exist_ok=True)
@@ -898,6 +898,7 @@ def api_animate():
     }
     with _animate_jobs_lock:
         _animate_jobs.insert(0, job)
+    _save_jobs()
     return jsonify({"ok": True, "job_id": job_id, "status": "pending"})
 
 
@@ -963,6 +964,7 @@ def api_animate_upload():
     }
     with _animate_jobs_lock:
         _animate_jobs.insert(0, job)
+    _save_jobs()
     return jsonify({"ok": True, "job_id": job_id, "status": "pending", "character": "_uploads", "name": stem})
 
 
@@ -1189,7 +1191,7 @@ def api_local_videos():
     for char_dir in sorted(VIDEO_DIR.iterdir()):
         if not char_dir.is_dir():
             continue
-        for f in sorted(char_dir.glob("*.mp4"), key=lambda p: p.stat().st_mtime, reverse=True):
+        for f in sorted(char_dir.glob("*.mp4"), key=lambda p: p.stat().st_mtime):
             parts = f.stem.split("__", 1)
             src_name = parts[0] if len(parts) == 2 else f.stem
             thumb = DATA_DIR / "video_thumbs" / f"{char_dir.name}__{f.stem}.jpg"
@@ -1257,6 +1259,29 @@ def mark_video(rel: str):
     return jsonify({"ok": True})
 
 
+@app.post("/api/purge_rejected_videos")
+def purge_rejected_videos():
+    """Delete all video files (+ sidecar JSON + thumbnail) marked reject=true."""
+    deleted = []
+    for char_dir in VIDEO_DIR.iterdir():
+        if not char_dir.is_dir():
+            continue
+        for meta_file in char_dir.glob("*.json"):
+            try:
+                meta = json.loads(meta_file.read_text())
+            except Exception:
+                continue
+            if not meta.get("reject"):
+                continue
+            mp4 = meta_file.with_suffix(".mp4")
+            thumb = DATA_DIR / "video_thumbs" / f"{char_dir.name}__{meta_file.stem}.jpg"
+            for f in (mp4, meta_file, thumb):
+                if f.exists():
+                    f.unlink()
+            deleted.append(str(mp4.name))
+    return jsonify({"ok": True, "deleted": deleted, "count": len(deleted)})
+
+
 @app.get("/videos")
 def videos_page():
     resp = send_from_directory("static", "videos.html")
@@ -1273,6 +1298,39 @@ def queue_page():
 def api_jobs():
     with _animate_jobs_lock:
         return jsonify(list(_animate_jobs))
+
+
+@app.patch("/api/jobs/update/<job_id>")
+def api_jobs_update(job_id: str):
+    data = request.get_json(force=True)
+    found = False
+    with _animate_jobs_lock:
+        for job in _animate_jobs:
+            if job["job_id"] == job_id and job["status"] == "pending":
+                for key in ("prompt", "user_description"):
+                    if key in data:
+                        job[key] = data[key]
+                found = True
+                break
+    if found:
+        _save_jobs()
+        return jsonify({"ok": True})
+    return jsonify({"error": "job not found or not pending"}), 404
+
+
+@app.delete("/api/jobs/cancel/<job_id>")
+def api_jobs_cancel(job_id: str):
+    found = False
+    with _animate_jobs_lock:
+        for job in _animate_jobs:
+            if job["job_id"] == job_id and job["status"] == "pending":
+                job["status"] = "cancelled"
+                found = True
+                break
+    if found:
+        _save_jobs()
+        return jsonify({"ok": True})
+    return jsonify({"error": "job not found or not pending"}), 404
 
 
 def _terminate_runpod_pod(pod_id: str, api_key: str) -> bool:
