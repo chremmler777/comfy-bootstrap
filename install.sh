@@ -151,7 +151,7 @@ if [ $SKIP_DOWNLOADS -eq 0 ]; then
   pip install --upgrade pip
 
   # Upgrade torch — base image has 2.2.0 but comfy_kitchen requires 2.4+
-  pip install --quiet torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+  pip install --force-reinstall --quiet torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 
   # Remove strict version pins that cause issues
   sed -i 's/==.*//' requirements.txt
