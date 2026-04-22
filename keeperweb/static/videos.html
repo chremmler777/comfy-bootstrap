@@ -220,8 +220,7 @@ kbd { background: #222; border: 1px solid #383838; border-radius: 3px; padding: 
       <div>
         <label>Mode</label>
         <select id="uploadMode">
-          <option value="fast" selected>Fast (LightX2V 6-step)</option>
-          <option value="q8">Quality 8-step</option>
+          <option value="fast" selected>Fast (LightX2V 6-step) ★</option>
           <option value="q20">Quality 20-step</option>
           <option value="q30">Quality 30-step</option>
         </select>
@@ -261,8 +260,7 @@ kbd { background: #222; border: 1px solid #383838; border-radius: 3px; padding: 
         <option value="241">~10s (241fr)</option>
       </select>
       <select id="rerunMode">
-        <option value="fast" selected>Fast (LightX2V 6-step)</option>
-        <option value="q8">Quality 8-step</option>
+        <option value="fast" selected>Fast (LightX2V 6-step) ★</option>
         <option value="q20">Quality 20-step</option>
         <option value="q30">Quality 30-step</option>
       </select>
@@ -321,7 +319,7 @@ function renderGrid(videos) {
   updateDetail();
 }
 
-function updateDetail() {
+function updateDetail(doPlay = false) {
   const v = currentVideos[activeVid];
   const vid = document.getElementById("detailVideo");
   const noVid = document.getElementById("detailNoVideo");
@@ -336,11 +334,18 @@ function updateDetail() {
     return;
   }
   const src = `/local_video/${v.rel}`;
-  if (vid.src !== location.origin + src) {
-    vid.src = src;
-  }
   vid.style.display = "block";
   noVid.style.display = "none";
+  if (vid.dataset.src !== src) {
+    vid.dataset.src = src;
+    vid.src = src;
+    vid.load();
+    if (doPlay) {
+      vid.addEventListener('canplay', function h() { vid.removeEventListener('canplay', h); vid.play().catch(()=>{}); }, {once:true});
+    }
+  } else if (doPlay) {
+    vid.play().catch(() => {});
+  }
   const label = `${v.character} · ${v.src_name.replace(/_+$/,"")}`;
   document.getElementById("dHeaderTitle").textContent = label;
   document.getElementById("dName").textContent = label;
@@ -384,7 +389,7 @@ function setActive(i) {
   document.querySelectorAll(".card").forEach(c => c.classList.remove("active"));
   document.querySelector(`.card[data-idx="${i}"]`)?.classList.add("active");
   document.querySelector(`.card[data-idx="${i}"]`)?.scrollIntoView({block: "nearest"});
-  updateDetail();
+  updateDetail(true);
 }
 
 async function markVideo(i, patch) {

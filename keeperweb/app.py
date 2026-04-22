@@ -25,9 +25,25 @@ VIDEO_DIR.mkdir(parents=True, exist_ok=True)
 (DATA_DIR / "video_cache").mkdir(exist_ok=True)
 (DATA_DIR / "video_thumbs").mkdir(exist_ok=True)
 
-# In-memory animate job log: list of dicts, newest first
+# Animate job log: list of dicts, newest first (persisted to disk)
 _animate_jobs: list[dict] = []
 _animate_jobs_lock = threading.Lock()
+JOBS_FILE = DATA_DIR / "animate_jobs.json"
+
+
+def _save_jobs():
+    with _animate_jobs_lock:
+        jobs_copy = list(_animate_jobs)
+    JOBS_FILE.write_text(json.dumps(jobs_copy, indent=2))
+
+
+def _load_saved_jobs() -> list:
+    if JOBS_FILE.exists():
+        try:
+            return json.loads(JOBS_FILE.read_text())
+        except Exception:
+            return []
+    return []
 
 
 def _parse_mode(mode_str, fast_mode_fallback=True) -> tuple[bool, int]:
@@ -818,7 +834,7 @@ def _download_video(job: dict, videos: list[dict]) -> None:
             }
             dest.with_suffix(".json").write_text(json.dumps(meta, indent=2))
             # Generate thumbnail
-            thumb = DATA_DIR / "video_thumbs" / f"{char}__{dest.name}.jpg"
+            thumb = DATA_DIR / "video_thumbs" / f"{char}__{dest.stem}.jpg"
             subprocess.run(
                 ["ffmpeg", "-y", "-i", str(dest), "-vframes", "1", "-q:v", "3", str(thumb)],
                 capture_output=True, timeout=30,
@@ -972,6 +988,12 @@ def api_animate_status(prompt_id: str):
 
     entry = history[prompt_id]
     if entry.get("status", {}).get("status_str") == "error":
+        with _animate_jobs_lock:
+            for job in _animate_jobs:
+                if job["prompt_id"] == prompt_id:
+                    job["status"] = "error"
+                    break
+        _save_jobs()
         return jsonify({"status": "error"})
 
     videos = []
@@ -1001,6 +1023,7 @@ def api_animate_status(prompt_id: str):
     if job_ref and videos:
         threading.Thread(target=_download_video, args=(job_ref, videos), daemon=True).start()
 
+    _save_jobs()
     return jsonify({"status": status, "videos": videos})
 
 
@@ -1043,6 +1066,7 @@ def api_dispatch(job_id: str):
     with _animate_jobs_lock:
         job["prompt_id"] = result.get("prompt_id")
         job["status"] = "queued"
+    _save_jobs()
     return jsonify({"ok": True, "prompt_id": job["prompt_id"]})
 
 
@@ -1168,7 +1192,7 @@ def api_local_videos():
         for f in sorted(char_dir.glob("*.mp4"), key=lambda p: p.stat().st_mtime, reverse=True):
             parts = f.stem.split("__", 1)
             src_name = parts[0] if len(parts) == 2 else f.stem
-            thumb = DATA_DIR / "video_thumbs" / f"{char_dir.name}__{f.name}.jpg"
+            thumb = DATA_DIR / "video_thumbs" / f"{char_dir.name}__{f.stem}.jpg"
             meta_file = f.with_suffix(".json")
             meta = json.loads(meta_file.read_text()) if meta_file.exists() else {}
             out.append({
@@ -1235,7 +1259,9 @@ def mark_video(rel: str):
 
 @app.get("/videos")
 def videos_page():
-    return send_from_directory("static", "videos.html")
+    resp = send_from_directory("static", "videos.html")
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return resp
 
 
 @app.get("/queue")
@@ -1292,8 +1318,67 @@ def _auto_shutdown_loop():
             pass
 
 
+def _bg_job_poll_loop():
+    """Background thread: poll queued/running jobs every 20s and download completed videos."""
+    time.sleep(10)  # let startup finish
+    while True:
+        try:
+            with _animate_jobs_lock:
+                active = [(j["job_id"], j["prompt_id"]) for j in _animate_jobs
+                          if j["status"] in ("queued", "running") and j.get("prompt_id")]
+            for job_id, prompt_id in active:
+                try:
+                    history = _runpod_get(f"/history/{prompt_id}")
+                    if prompt_id not in history:
+                        continue
+                    entry = history[prompt_id]
+                    if entry.get("status", {}).get("status_str") == "error":
+                        with _animate_jobs_lock:
+                            for job in _animate_jobs:
+                                if job["prompt_id"] == prompt_id:
+                                    job["status"] = "error"
+                                    break
+                        _save_jobs()
+                        continue
+                    videos = []
+                    for node_output in entry.get("outputs", {}).values():
+                        for key in ("videos", "images"):
+                            for vinfo in node_output.get(key, []):
+                                fname = vinfo.get("filename", "")
+                                if not fname.endswith(".mp4"):
+                                    continue
+                                subfolder = vinfo.get("subfolder", "")
+                                rel = f"{subfolder}/{fname}".lstrip("/")
+                                videos.append({"rel": rel, "url": f"{RUNPOD_COMFY}/view?filename={fname}&subfolder={subfolder}&type=output"})
+                    if not videos:
+                        continue
+                    job_ref = None
+                    with _animate_jobs_lock:
+                        for job in _animate_jobs:
+                            if job["prompt_id"] == prompt_id and job["status"] != "done":
+                                job["status"] = "done"
+                                job["videos"] = videos
+                                job_ref = dict(job)
+                                break
+                    if job_ref:
+                        _save_jobs()
+                        threading.Thread(target=_download_video, args=(job_ref, videos), daemon=True).start()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        time.sleep(20)
+
+
 _shutdown_thread = threading.Thread(target=_auto_shutdown_loop, daemon=True)
 _shutdown_thread.start()
+
+_bg_poll_thread = threading.Thread(target=_bg_job_poll_loop, daemon=True)
+_bg_poll_thread.start()
+
+# Load persisted jobs from previous session
+with _animate_jobs_lock:
+    _animate_jobs = _load_saved_jobs()
 
 
 if __name__ == "__main__":
