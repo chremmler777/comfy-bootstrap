@@ -142,21 +142,25 @@ fi
 
 cd ComfyUI
 
-# Use Python 3.10 for venv — inherit system packages (torch already in base image)
-python3.10 -m venv --system-site-packages venv
-source venv/bin/activate
-pip install --upgrade pip
+if [ $SKIP_DOWNLOADS -eq 0 ]; then
+  # Use Python 3.10 for venv — inherit system packages (torch already in base image)
+  python3.10 -m venv --system-site-packages venv
+  source venv/bin/activate
+  pip install --upgrade pip
 
-# Skip torch install — base image (runpod/pytorch) already has CUDA torch
-# --system-site-packages venv inherits it
+  # Skip torch install — base image (runpod/pytorch) already has CUDA torch
+  # --system-site-packages venv inherits it
 
-# Remove strict version pins that cause issues
-sed -i 's/==.*//' requirements.txt
+  # Remove strict version pins that cause issues
+  sed -i 's/==.*//' requirements.txt
 
-pip install -r requirements.txt
+  pip install -r requirements.txt
 
-# Apply fix for extra_config.py YAML parsing
-cp /workspace/bootstrap/extra_config.py /workspace/ComfyUI/utils/extra_config.py
+  # Apply fix for extra_config.py YAML parsing
+  cp /workspace/bootstrap/extra_config.py /workspace/ComfyUI/utils/extra_config.py
+else
+  source venv/bin/activate 2>/dev/null || true
+fi
 
 ############################
 # Skip URL validation - aria2c will handle errors
@@ -166,6 +170,7 @@ echo "=== Preparing model downloads ==="
 ############################
 # Custom nodes
 ############################
+if [ $SKIP_DOWNLOADS -eq 0 ]; then
 echo "=== Custom nodes ==="
 cd /workspace/ComfyUI/custom_nodes
 
@@ -175,6 +180,7 @@ while read -r repo; do
   [ -d "$name" ] && continue
   git clone "$repo"
 done < /workspace/bootstrap/custom_nodes.txt
+fi
 
 ############################
 # Models (WAN-authoritative)
@@ -305,6 +311,7 @@ fi
 ############################
 # SAM model for Impact-Pack
 ############################
+if [ $SKIP_DOWNLOADS -eq 0 ]; then
 echo "=== Downloading SAM model for Impact-Pack ==="
 mkdir -p /workspace/ComfyUI/models/sams
 cd /workspace/ComfyUI/models/sams
@@ -354,6 +361,8 @@ echo "=== Workflows ==="
 cd /workspace/ComfyUI
 mkdir -p user/default/workflows
 cp /workspace/bootstrap/workflows/*.json user/default/workflows/ || true
+
+fi # end SKIP_DOWNLOADS -eq 0
 
 ############################
 # Launch (background-safe)
