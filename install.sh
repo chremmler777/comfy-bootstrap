@@ -117,6 +117,7 @@ echo ""
 ############################
 # System dependencies
 ############################
+if [ $SKIP_DOWNLOADS -eq 0 ]; then
 echo "=== System dependencies ==="
 apt update
 apt install -y git wget aria2 ffmpeg curl software-properties-common
@@ -129,6 +130,7 @@ if ! python3.10 -m venv --help &> /dev/null; then
   apt update
 fi
 apt install -y python3.10 python3.10-venv python3.10-dev 2>/dev/null || true
+fi
 
 ############################
 # ComfyUI core
@@ -425,3 +427,6 @@ echo ""
 echo "🎬 ComfyUI:   port 8188"
 echo "📺 Keeperweb: port 8189  (browse + download videos)"
 echo "════════════════════════════════════════════════════"
+
+# Keep container alive so RunPod doesn't restart it
+sleep infinity
