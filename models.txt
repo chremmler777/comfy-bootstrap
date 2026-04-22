@@ -38,8 +38,5 @@ ultralytics/bbox https://huggingface.co/ashllay/YOLO_Models/resolve/e07b01219ff1
 ultralytics/bbox https://huggingface.co/Bingsu/adetailer/resolve/main/face_yolov8m.pt face_yolov8m.pt
 ultralytics/bbox https://huggingface.co/Bingsu/adetailer/resolve/main/hand_yolov8s.pt hand_yolov8s.pt
 
-# RIFE frame interpolation (for smooth video output)
-vfi https://huggingface.co/Fannovel16/Practical_RIFE/resolve/main/flownet.pkl flownet.pkl
-
 # Upscalers
 upscale_models https://huggingface.co/FacehugmanIII/4x_foolhardy_Remacri/resolve/main/4x_foolhardy_Remacri.pth 4x_foolhardy_Remacri.pth
