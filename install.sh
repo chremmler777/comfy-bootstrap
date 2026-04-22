@@ -228,7 +228,8 @@ if [ $SKIP_DOWNLOADS -eq 0 ]; then
     if [[ "$url" =~ civitai ]]; then
       (
         curl -s -L -C - \
-          --max-time 300 --retry 5 --retry-delay 10 --retry-max-time 600 \
+          --speed-limit 10000 --speed-time 60 \
+          --retry 5 --retry-delay 10 \
           -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" \
           ${CIVITAI_TOKEN:+-H "Authorization: Bearer ${CIVITAI_TOKEN}"} \
           -o "$folder/$fname" \
