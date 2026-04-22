@@ -150,8 +150,8 @@ if [ $SKIP_DOWNLOADS -eq 0 ]; then
   source venv/bin/activate
   pip install --upgrade pip
 
-  # Skip torch install — base image (runpod/pytorch) already has CUDA torch
-  # --system-site-packages venv inherits it
+  # Upgrade torch — base image has 2.2.0 but comfy_kitchen requires 2.4+
+  pip install --quiet torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 
   # Remove strict version pins that cause issues
   sed -i 's/==.*//' requirements.txt
