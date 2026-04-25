@@ -21,11 +21,11 @@ echo ""
 ############################
 mkdir -p /root/.ssh /run/sshd
 chmod 700 /root/.ssh
-# PUBLIC_KEY is injected by RunPod when startSsh: true; fall back to hardcoded
 SSH_KEY="${PUBLIC_KEY:-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDouP0kUKnL2oL9QOwYCdXeaN8gBfnvtWFtgRIXV+mq+ christoph.demmler@gmail.com}"
 echo "$SSH_KEY" > /root/.ssh/authorized_keys
 chmod 600 /root/.ssh/authorized_keys
-which sshd || apt-get install -y -q openssh-server 2>&1
+which sshd || apt-get install -y -q openssh-server
+ssh-keygen -A  # generate missing host keys (required before sshd will start)
 /usr/sbin/sshd
 echo "SSH ready (sshd running)."
 
