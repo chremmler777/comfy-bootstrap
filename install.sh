@@ -17,14 +17,17 @@ echo "Script will continue if terminal closes. Check log: tail -f $LOG_FILE"
 echo ""
 
 ############################
-# SSH setup (sshd not started by default when dockerArgs overrides entrypoint)
+# SSH setup (dockerArgs bypasses RunPod init, so we start sshd manually)
 ############################
-mkdir -p /root/.ssh
+mkdir -p /root/.ssh /run/sshd
 chmod 700 /root/.ssh
-echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDouP0kUKnL2oL9QOwYCdXeaN8gBfnvtWFtgRIXV+mq+ christoph.demmler@gmail.com" >> /root/.ssh/authorized_keys
+# PUBLIC_KEY is injected by RunPod when startSsh: true; fall back to hardcoded
+SSH_KEY="${PUBLIC_KEY:-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDouP0kUKnL2oL9QOwYCdXeaN8gBfnvtWFtgRIXV+mq+ christoph.demmler@gmail.com}"
+echo "$SSH_KEY" > /root/.ssh/authorized_keys
 chmod 600 /root/.ssh/authorized_keys
-service ssh start || (apt-get install -y -q openssh-server && service ssh start) || true
-echo "SSH ready."
+which sshd || apt-get install -y -q openssh-server 2>&1
+/usr/sbin/sshd
+echo "SSH ready (sshd running)."
 
 ############################
 # Check for existing installation (Network Volume)
