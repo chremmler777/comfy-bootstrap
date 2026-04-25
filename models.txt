@@ -7,8 +7,8 @@ loras/wan https://civitai.red/api/download/models/2161023?type=Model&format=Safe
 loras/wan https://civitai.red/api/download/models/2161067?type=Model&format=SafeTensor Anal_Sex_Low.safetensors
 loras/wan https://civitai.red/api/download/models/2096600?type=Model&format=SafeTensor Breast_Physics_Low.safetensors
 loras/wan https://civitai.red/api/download/models/2096603?type=Model&format=SafeTensor Breast_Physics_High.safetensors
-loras/wan https://civitai.red/api/download/models/2284083?type=Model&format=SafeTensor PenisLora_High.safetensors
-loras/wan https://civitai.red/api/download/models/2284089?type=Model&format=SafeTensor PenisLora_Low.safetensors
+loras/wan https://civitai.red/api/download/models/2300062?type=Model&format=SafeTensor PenisLora_High.safetensors
+loras/wan https://civitai.red/api/download/models/2298957?type=Model&format=SafeTensor PenisLora_Low.safetensors
 loras/wan https://civitai.red/api/download/models/2282761?type=Model&format=SafeTensor Braless_High.safetensors
 loras/wan https://civitai.red/api/download/models/2282767?type=Model&format=SafeTensor Braless_Low.safetensors
 loras/wan https://civitai.red/api/download/models/2265946?type=Model&format=SafeTensor Wan_BottomTS_High.safetensors
