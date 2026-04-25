@@ -412,7 +412,7 @@ cp /workspace/bootstrap/keeperweb/static/index.html   /workspace/comfyui2/keeper
 cp /workspace/bootstrap/keeperweb/static/videos.html  /workspace/comfyui2/keeper_web/static/videos.html
 cp /workspace/bootstrap/keeperweb/static/animate.html /workspace/comfyui2/keeper_web/static/animate.html 2>/dev/null || true
 
-nohup python /workspace/comfyui2/keeper_web/app.py \
+nohup /workspace/ComfyUI/venv/bin/python /workspace/comfyui2/keeper_web/app.py \
   > /workspace/keeperweb.log 2>&1 &
 
 echo "Keeperweb started on port 8189"
