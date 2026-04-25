@@ -406,6 +406,8 @@ mkdir -p /workspace/comfyui2/data
 cp /workspace/bootstrap/keeperweb/app.py          /workspace/comfyui2/keeper_web/app.py
 cp /workspace/bootstrap/keeperweb/wan_workflow.py  /workspace/comfyui2/keeper_web/wan_workflow.py
 cp /workspace/bootstrap/keeperweb/planner.py       /workspace/comfyui2/keeper_web/planner.py
+cp /workspace/bootstrap/keeperweb/queue_sarah.py     /workspace/comfyui2/keeper_web/queue_sarah.py
+cp /workspace/bootstrap/keeperweb/queue_donna.py     /workspace/comfyui2/keeper_web/queue_donna.py
 cp /workspace/bootstrap/keeperweb/static/index.html   /workspace/comfyui2/keeper_web/static/index.html
 cp /workspace/bootstrap/keeperweb/static/videos.html  /workspace/comfyui2/keeper_web/static/videos.html
 cp /workspace/bootstrap/keeperweb/static/animate.html /workspace/comfyui2/keeper_web/static/animate.html 2>/dev/null || true
