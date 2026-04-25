@@ -17,6 +17,16 @@ echo "Script will continue if terminal closes. Check log: tail -f $LOG_FILE"
 echo ""
 
 ############################
+# SSH setup (sshd not started by default when dockerArgs overrides entrypoint)
+############################
+mkdir -p /root/.ssh
+chmod 700 /root/.ssh
+echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDouP0kUKnL2oL9QOwYCdXeaN8gBfnvtWFtgRIXV+mq+ christoph.demmler@gmail.com" >> /root/.ssh/authorized_keys
+chmod 600 /root/.ssh/authorized_keys
+service ssh start || (apt-get install -y -q openssh-server && service ssh start) || true
+echo "SSH ready."
+
+############################
 # Check for existing installation (Network Volume)
 ############################
 MARKER_FILE="/workspace/.comfy_installed"
