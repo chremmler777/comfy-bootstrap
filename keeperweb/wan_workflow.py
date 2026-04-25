@@ -5,7 +5,11 @@ DEFAULT_NEGATIVE = (
     "色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，"
     "最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，"
     "画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，"
-    "杂乱的背景，三条腿，背景人很多，倒着走"
+    "杂乱的背景，三条腿，背景人很多，倒着走，"
+    "shaking penis, vibrating cock, trembling genitals, excessive ball movement, "
+    "jittery motion, rapid shaking, uncontrolled vibration, flickering body parts, "
+    "sped up motion, fast movement, teleporting limbs, jerky animation, strobing, "
+    "camera shake, handheld camera, blurry motion, distorted anatomy"
 )
 
 # Available content LoRAs — each has a High and Low variant
@@ -50,7 +54,7 @@ def build_wan_i2v_workflow(
         length: number of frames (81 ≈ 3.4s at 24fps)
         fps: output video fps
         seed: random seed (None = random)
-        fast_mode: True = LightX2V 6-step; False = quality mode
+        fast_mode: True = LightX2V 4-step; False = quality mode
         quality_steps: step count when fast_mode=False (10/20/30)
         content_loras: list of (lora_base_name, strength) e.g. [("Breast_Physics", 0.8)]
         filename_prefix: SaveVideo filename prefix
@@ -79,7 +83,12 @@ def build_wan_i2v_workflow(
     n_unet_l = node("UNETLoader", {"unet_name": "wan/WAN_Low.safetensors",  "weight_dtype": "default"})
 
     # ── shared: prompts ──────────────────────────────────────
-    n_pos = node("CLIPTextEncode", {"clip": [n_clip, 0], "text": positive_prompt})
+    # Prepend motion control prefix to every prompt for smoother, natural movement
+    MOTION_PREFIX = (
+        "cinematic, smooth natural motion, static camera, slow deliberate movement, "
+        "no camera shake, no teleporting limbs, fluid body motion, "
+    )
+    n_pos = node("CLIPTextEncode", {"clip": [n_clip, 0], "text": MOTION_PREFIX + positive_prompt})
     n_neg = node("CLIPTextEncode", {"clip": [n_clip, 0], "text": negative_prompt})
 
     # ── shared: image ────────────────────────────────────────
@@ -134,9 +143,9 @@ def build_wan_i2v_workflow(
 
     # ── KSamplers (two-pass: high noise then low noise) ──────
     if fast_mode:
-        # 6 steps, 33/67 split: 0→2 high noise, 2→6 low noise
+        # 4 steps — matches LightX2V LoRA design (LoRA named "4steps"); confirmed better than 6
         # beta scheduler + shift 8.0 reduces flickering vs simple/shift 5.0
-        total_steps = 6
+        total_steps = 4
         n_ks1 = node("KSamplerAdvanced", {
             "model":         [n_samp_h, 0],
             "positive":      [n_i2v, 0],
